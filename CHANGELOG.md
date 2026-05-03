@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.6](https://github.com/JacobPEvans/tf-splunk-aws/compare/v0.14.5...v0.14.6) (2026-05-03)
+
+
+### Bug Fixes
+
+* **ci:** remove deprecated app-id secret passthrough ([b427b64](https://github.com/JacobPEvans/tf-splunk-aws/commit/b427b6437a7fb613ac05e9899ecd095d9036f3ac))
+
 ## [0.14.5](https://github.com/JacobPEvans/tf-splunk-aws/compare/v0.14.4...v0.14.5) (2026-05-03)
 
 
