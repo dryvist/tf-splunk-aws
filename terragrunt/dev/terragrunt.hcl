@@ -41,6 +41,9 @@ inputs = {
   web_allowed_cidrs = local.allowed_cidrs
   hec_allowed_cidrs = local.allowed_cidrs
 
+  # Auto-lifecycle: start Splunk every 4h for 60min (~$9/mo vs ~$18/mo always-on)
+  enable_auto_lifecycle = true
+
   # Splunk admin password: uses Doppler SPLUNK_PASSWORD if set, otherwise auto-generates
   splunk_admin_password = local.splunk_password != "" ? local.splunk_password : null
 }
