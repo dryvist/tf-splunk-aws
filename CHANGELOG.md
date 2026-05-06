@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.8](https://github.com/JacobPEvans/tf-splunk-aws/compare/v0.14.7...v0.14.8) (2026-05-06)
+
+
+### Bug Fixes
+
+* enable auto-lifecycle in dev terragrunt config ([#42](https://github.com/JacobPEvans/tf-splunk-aws/issues/42)) [issue-solver-2026-05-05] ([298e1e0](https://github.com/JacobPEvans/tf-splunk-aws/commit/298e1e08351aef4d4bc02f16222e4f3db7673553))
+
 ## [0.14.7](https://github.com/JacobPEvans/tf-splunk-aws/compare/v0.14.6...v0.14.7) (2026-05-04)
 
 
