@@ -46,6 +46,8 @@ Splunk infrastructure:
 - Encrypted EBS volumes for data storage
 - CloudWatch integration for logging
 - User data scripts for Splunk setup
+- SmartStore S3 backend: warm/cold index buckets persist to S3 (data survives instance termination)
+- Auto-lifecycle management: Automated start/stop cycle via EventBridge Scheduler and instance user data
 
 ## Key Features
 
@@ -53,6 +55,8 @@ Splunk infrastructure:
 - CloudWatch integration for monitoring
 - Automated user data scripts
 - Proper security group configuration
+- SmartStore S3 backend: index data persists to S3 and is searchable on-demand
+- Auto-lifecycle management: ~$9/mo with `enable_auto_lifecycle = true` vs ~$18.17/mo always-on
 
 ## 💰 Cost Efficiency
 
@@ -94,7 +98,7 @@ splunk (Splunk instance + EBS)
 - **AWS CLI**: Configured with appropriate permissions
 - **Terragrunt**: Required for deployment
 
-## 🚦 Getting Started
+## Quick Start
 
 1. Clone the repository
 2. Configure AWS credentials
