@@ -113,9 +113,12 @@ locals {
     # Enable Splunk to start at boot
     /opt/splunk/bin/splunk enable boot-start -user splunk
 
-    # Configure basic settings
-    sudo -u splunk /opt/splunk/bin/splunk set web-port 8000
-    sudo -u splunk /opt/splunk/bin/splunk restart
+    # Splunk Web defaults to port 8000; no `set web-port` needed.
+    # No restart needed either — `splunk start` above already brought the daemon up
+    # with the seeded admin password. The previous user_data ran `splunk set web-port`
+    # followed by `splunk restart` here, which both require an authenticated CLI
+    # session that the seed-passwd flow doesn't establish. Under `set -eo pipefail`
+    # those non-zero exits killed the rest of the user_data script.
     %{if var.enable_auto_lifecycle}
 
     # Auto-lifecycle: schedule shutdown ${var.auto_shutdown_minutes} minutes after every boot.
