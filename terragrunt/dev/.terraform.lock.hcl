@@ -3,7 +3,7 @@
 
 provider "registry.opentofu.org/criblio/criblio" {
   version     = "1.23.32"
-  constraints = "1.23.32"
+  constraints = "~> 1.23"
   hashes = [
     "h1:S+gRJQ4FrCy/JVHuCso3RaA7lbK+0n2+O4QirSpzchw=",
     "zh:0a207fe8b9ac04bb52e7d699ce6b5b00fd399b27bde510584a33398000c03be2",
