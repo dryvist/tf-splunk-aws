@@ -20,7 +20,29 @@ terraform {
       source  = "hashicorp/http"
       version = "~> 3.0"
     }
+    criblio = {
+      source  = "criblio/criblio"
+      version = "1.23.32"
+    }
   }
+}
+
+# criblio provider — two aliases:
+#   onprem (default): bearer-token auth against the Stream leader EC2 instance
+#   cloud           : OAuth2 client credentials against Cribl.Cloud
+# Both read most config from env vars (CRIBL_*); explicit args win when set.
+provider "criblio" {
+  alias = "onprem"
+}
+
+provider "criblio" {
+  alias = "cloud"
+
+  client_id       = var.cribl_cloud_client_id != "" ? var.cribl_cloud_client_id : null
+  client_secret   = var.cribl_cloud_client_secret != "" ? var.cribl_cloud_client_secret : null
+  organization_id = var.cribl_cloud_organization_id != "" ? var.cribl_cloud_organization_id : null
+  workspace_id    = var.cribl_cloud_workspace_id != "" ? var.cribl_cloud_workspace_id : null
+  cloud_domain    = var.cribl_cloud_domain
 }
 
 # AWS account identity - used for unique S3 bucket naming
@@ -258,6 +280,25 @@ module "cribl" {
   instance_profile_name       = var.enable_cribl ? module.security.cribl_instance_profile_name : null
   linux_ami_id                = data.aws_ami.amazon_linux_x86.id
   windows_ami_id              = data.aws_ami.windows_2022.id
+}
+
+# Cribl Config Module — declarative Cribl object management via criblio provider.
+# Sits on top of module.cribl. Disabled by default; gated by var.enable_criblio_config.
+# When enabled, var.cribl_onprem_server_url and var.cribl_onprem_bearer_token must be set
+# (typically: server_url derived from module.cribl outputs, token from SSM Parameter Store).
+module "cribl_config" {
+  source = "./cribl-config"
+
+  enable_criblio_config = var.enable_criblio_config
+  environment           = var.environment
+
+  onprem_server_url   = var.cribl_onprem_server_url
+  onprem_bearer_token = var.cribl_onprem_bearer_token
+
+  providers = {
+    criblio.onprem = criblio.onprem
+    criblio.cloud  = criblio.cloud
+  }
 }
 
 # Route private subnet traffic through NAT instance

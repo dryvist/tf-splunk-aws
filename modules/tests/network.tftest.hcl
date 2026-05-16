@@ -21,6 +21,14 @@ mock_provider "http" {
   }
 }
 
+mock_provider "criblio" {
+  alias = "onprem"
+}
+mock_provider "null" {}
+mock_provider "criblio" {
+  alias = "cloud"
+}
+
 # Override non-network child modules so we can test the root module's
 # network wiring in isolation.
 override_module {
