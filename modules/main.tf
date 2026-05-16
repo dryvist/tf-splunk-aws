@@ -49,9 +49,6 @@ provider "criblio" {
   cloud_domain    = var.cribl_cloud_domain
 }
 
-# AWS account identity - used for unique S3 bucket naming
-data "aws_caller_identity" "current" {}
-
 # Auto-generated credentials for ephemeral dev/DR environments
 # All secrets are generated per-build and destroyed with the environment
 resource "random_password" "splunk_admin" {
@@ -137,69 +134,6 @@ data "aws_ami" "windows_2022" {
   }
 }
 
-# SmartStore S3 Bucket - remote storage for Splunk warm/cold index buckets
-# Created at root level to break circular dependency: security needs ARN for IAM, splunk needs name for config
-resource "aws_s3_bucket" "smartstore" {
-  bucket = "${var.environment}-splunk-smartstore-${data.aws_caller_identity.current.account_id}"
-
-  tags = {
-    Environment = var.environment
-    Project     = "splunk-aws"
-    ManagedBy   = "terraform"
-    Name        = "${var.environment}-splunk-smartstore"
-  }
-}
-
-resource "aws_s3_bucket_versioning" "smartstore" {
-  bucket = aws_s3_bucket.smartstore.id
-
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "smartstore" {
-  bucket = aws_s3_bucket.smartstore.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "smartstore" {
-  bucket = aws_s3_bucket.smartstore.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "smartstore" {
-  bucket = aws_s3_bucket.smartstore.id
-
-  rule {
-    id     = "smartstore-tiering"
-    status = "Enabled"
-
-    transition {
-      days          = 30
-      storage_class = "STANDARD_IA"
-    }
-
-    transition {
-      days          = 90
-      storage_class = "GLACIER_IR"
-    }
-
-    noncurrent_version_expiration {
-      noncurrent_days = 90
-    }
-  }
-}
-
 # Network Module
 module "network" {
   source = "./network"
@@ -224,7 +158,6 @@ module "security" {
   hec_allowed_cidrs        = var.hec_allowed_cidrs
   web_allowed_cidrs        = var.web_allowed_cidrs
   allow_all_ips            = var.allow_all_ips
-  smartstore_bucket_arn    = aws_s3_bucket.smartstore.arn
   enable_cribl             = var.enable_cribl
   management_allowed_cidrs = var.management_allowed_cidrs
   cribl_allowed_cidrs      = var.cribl_allowed_cidrs
@@ -262,7 +195,6 @@ module "splunk" {
   ami_id                       = data.aws_ami.amazon_linux_x86.id
   splunk_version               = var.splunk_version
   splunk_build                 = var.splunk_build
-  smartstore_bucket_name       = aws_s3_bucket.smartstore.bucket
   enable_auto_lifecycle        = var.enable_auto_lifecycle
   auto_shutdown_minutes        = var.auto_shutdown_minutes
   lifecycle_interval_hours     = var.lifecycle_interval_hours

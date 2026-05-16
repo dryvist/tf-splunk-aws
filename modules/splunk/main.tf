@@ -68,29 +68,6 @@ locals {
     tar -xzf "$${SPLUNK_PKG}"
     chown -R splunk:splunk /opt/splunk
 
-    # Configure SmartStore (S3 remote storage for warm/cold buckets)
-    # Must run before first Splunk start so indexes are created with SmartStore enabled
-    mkdir -p /opt/splunk/etc/system/local
-
-    cat > /opt/splunk/etc/system/local/indexes.conf << 'INDEXES'
-[volume:s3_store]
-storageType = remote
-path = s3://${var.smartstore_bucket_name}/smartstore
-
-[default]
-remotePath = volume:s3_store/$_index_name
-repFactor = 0
-maxDataSize = auto
-INDEXES
-
-    cat > /opt/splunk/etc/system/local/server.conf << 'SERVER'
-[cachemanager]
-max_cache_size = 5120
-eviction_policy = lru
-SERVER
-
-    chown -R splunk:splunk /opt/splunk/etc/system/local
-
     # Retrieve Splunk admin password from SSM Parameter Store (never stored in user_data)
     SPLUNK_PASSWORD=$(aws ssm get-parameter \
       --name "${var.splunk_password_ssm_name}" \

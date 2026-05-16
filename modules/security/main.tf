@@ -241,20 +241,6 @@ resource "aws_iam_role_policy" "splunk_instance" {
           "ec2:DescribeTags"
         ]
         Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject",
-          "s3:GetBucketLocation",
-          "s3:ListBucket"
-        ]
-        Resource = [
-          var.smartstore_bucket_arn,
-          "${var.smartstore_bucket_arn}/*"
-        ]
       }
     ]
   })
@@ -380,7 +366,7 @@ resource "aws_iam_role" "cribl_instance" {
   })
 }
 
-# IAM Policy for Cribl Instances (SSM management only — no S3 SmartStore access)
+# IAM Policy for Cribl Instances (SSM management only — no module-managed S3 access)
 resource "aws_iam_role_policy" "cribl_instance" {
   count = var.enable_cribl ? 1 : 0
 
