@@ -8,8 +8,7 @@ without destroying any infrastructure or data.
 | Resource | Persists? | Notes |
 | ---------- | --------- | ----- |
 | EBS root volume | Yes | OS, Splunk install, config |
-| EBS data volume | Yes | Splunk index data (hot/warm) |
-| S3 SmartStore | Yes | Cold/frozen index data |
+| EBS data volume | Yes | Splunk index data (hot/warm/cold) |
 | SSM parameters | Yes | Admin password |
 | Security groups | Yes | Firewall rules |
 | IAM role | Yes | Instance permissions |
@@ -17,7 +16,8 @@ without destroying any infrastructure or data.
 | **Public IP** | **No** | New IP assigned on each start |
 | Instance ID | Yes | Does not change |
 
-> EBS data + S3 SmartStore = full index history survives any stop/start cycle.
+> EBS data volume holds the full Splunk index history across any stop/start cycle.
+> Long-term archive lives in a separate Cribl-managed S3 bucket outside this module.
 
 ---
 
@@ -30,8 +30,7 @@ without destroying any infrastructure or data.
 | NAT t4g.nano (us-east-2) | ~$2.52 |
 | Splunk t3a.small (us-east-2) | ~$12.18 |
 | EBS 70 GB gp3 | ~$2.97 |
-| S3 SmartStore | ~$0.50 |
-| **Total** | **~$18.17** |
+| **Total** | **~$17.67** |
 
 ### Paused (instances stopped, data retained)
 
@@ -40,8 +39,7 @@ without destroying any infrastructure or data.
 | NAT t4g.nano — stopped | $0.00 |
 | Splunk t3a.small — stopped | $0.00 |
 | EBS 70 GB gp3 (still billed) | ~$2.97 |
-| S3 SmartStore | ~$0.50 |
-| **Total** | **~$3.47** |
+| **Total** | **~$2.97** |
 
 ### With Auto-Lifecycle (EventBridge scheduled)
 
@@ -51,8 +49,8 @@ Default config: start every 4 hours, run 60 minutes = ~25% utilization.
 | ---------- | ------- |
 | Splunk t3a.small × 25% | ~$3.05 |
 | NAT t4g.nano (must stay on for egress routing) | ~$2.52 |
-| EBS + S3 | ~$3.47 |
-| **Total** | **~$9.04** |
+| EBS | ~$2.97 |
+| **Total** | **~$8.54** |
 
 ---
 
@@ -95,7 +93,7 @@ aws-vault exec tf-splunk-aws -- aws ec2 wait instance-stopped \
   --region us-east-2
 ```
 
-Both instances are now stopped. EBS and S3 continue to bill; compute does not.
+Both instances are now stopped. EBS continues to bill; compute does not.
 
 ---
 
@@ -154,7 +152,7 @@ does not create plan drift. A `terragrunt plan` after pause will show no changes
 
 Allow ~2–3 minutes after `instance-running` before Splunk Web is reachable.
 On resume, Splunk starts via the boot-start service; first-boot provisioning
-(package install, SSM password retrieval, SmartStore config) does not repeat.
+(package install, SSM password retrieval) does not repeat.
 
 ### Data ingestion during pause
 
@@ -169,8 +167,8 @@ If you want automated cost control without manual steps, set
 EventBridge Scheduler to start Splunk on a configurable interval
 (`lifecycle_interval_hours`, default 4) and shut it down automatically after
 `auto_shutdown_minutes` (default 60). The NAT instance must remain running to
-provide egress routing for the Splunk instance (private-subnet traffic to S3,
-SSM, and other AWS endpoints routes through NAT).
+provide egress routing for the Splunk instance (private-subnet traffic to SSM
+and other AWS endpoints routes through NAT).
 
 ### Elastic IP (EIP)
 

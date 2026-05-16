@@ -52,11 +52,6 @@ variable "allow_all_ips" {
   default     = false
 }
 
-variable "smartstore_bucket_arn" {
-  description = "ARN of the S3 bucket used for Splunk SmartStore remote storage"
-  type        = string
-}
-
 variable "enable_cribl" {
   description = "Enable Cribl Stream and Edge resources (security groups, IAM)"
   type        = bool

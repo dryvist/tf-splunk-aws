@@ -24,9 +24,8 @@ DATA FLOW
   On-Prem Splunk -> HEC (port 8088) -> AWS Splunk Receiver (private subnet via NAT)
   Cloud Sources  -> HEC (port 8088) -> AWS Splunk Receiver
 
-SmartStore (S3 remote index storage)
-  Splunk warm/cold index buckets -> S3 bucket (see Terraform outputs)
-  Data persists in S3 even when instance is stopped — searchable on-demand via start
+LONG-TERM ARCHIVE
+  Cribl writes directly to S3 outside this module — Splunk indexes stay local on EBS.
 
 NETWORK
   VPC: 10.0.0.0/16
@@ -41,12 +40,10 @@ NETWORK
 | NAT (t4g.nano) | ~$2.52/mo | ~$2.52/mo |
 | Splunk (t4g.small) | ~$12.18/mo | ~$3.05/mo (25% utilization) |
 | EBS (70GB gp3) | ~$2.97/mo | ~$2.97/mo |
-| S3 SmartStore | ~$0.50/mo | ~$0.50/mo |
-| **Total** | **~$18.17/mo** | **~$9/mo** |
+| **Total** | **~$17.67/mo** | **~$8.54/mo** |
 
-SmartStore is live: warm/cold index buckets tier to S3-IA (30d) then Glacier (90d).
 Auto-lifecycle (`enable_auto_lifecycle = true`) starts Splunk every 4 hours for 60 minutes via EventBridge Scheduler.
-Data persists in S3 even when instance is stopped — searchable on-demand via start.
+Index data lives on the EBS data volume; long-term archive is handled by Cribl writing directly to S3 outside this module.
 
 ## Technology Stack
 

@@ -4,7 +4,8 @@
 [![License](https://img.shields.io/github/license/JacobPEvans/tf-splunk-aws)](LICENSE)
 
 Cost-optimized Splunk infrastructure on AWS using OpenTofu and Terragrunt.
-**~$9–$18.17/month** (SmartStore + optional auto-lifecycle).
+**~$8.54–$17.67/month** (optional auto-lifecycle). Long-term archive is handled
+by Cribl writing directly to S3 outside this module.
 
 ## What & Why
 
@@ -13,7 +14,7 @@ Cost-optimized Splunk infrastructure on AWS using OpenTofu and Terragrunt.
 
 ## Quick Facts
 
-- **Cost**: ~$18.17/month always-on; ~$9/month with `enable_auto_lifecycle = true`
+- **Cost**: ~$17.67/month always-on; ~$8.54/month with `enable_auto_lifecycle = true`
 - **Architecture**: 4 modules (network, security, compute, splunk)
 - **Deployment**: Terragrunt-managed with remote state
 - **Security**: Encrypted storage, IAM least privilege, VPC isolation
@@ -25,11 +26,10 @@ Cost-optimized Splunk infrastructure on AWS using OpenTofu and Terragrunt.
 | NAT Instance (t4g.nano) | $2.52 | $2.52 |
 | Splunk Instance (t4g.small) | $12.18 | ~$3.05 (25% utilization) |
 | EBS Storage (70GB GP3) | $2.97 | $2.97 |
-| S3 SmartStore | ~$0.50 | ~$0.50 |
-| **Total** | **~$18.17** | **~$9** |
+| **Total** | **~$17.67** | **~$8.54** |
 
-SmartStore persists all index data to S3 (warm/cold → S3-IA at 30d → Glacier at 90d).
-Data remains searchable on-demand even when the instance is stopped.
+Index data lives on the local EBS volume. Cribl handles long-term archive to S3
+out-of-band, so this module no longer manages a SmartStore bucket.
 Auto-lifecycle (`enable_auto_lifecycle = true`) starts Splunk every 4 hours for 60 minutes.
 
 ## Quick Start

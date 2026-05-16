@@ -117,36 +117,30 @@ output "cribl_security_group_id" {
   value       = module.security.cribl_security_group_id
 }
 
-# SmartStore S3 Bucket
-output "smartstore_bucket_name" {
-  description = "Name of the S3 bucket used for Splunk SmartStore remote storage"
-  value       = aws_s3_bucket.smartstore.bucket
-}
-
 # Cost Estimation
 output "estimated_cost" {
   description = "Estimated daily and monthly cost in USD (always-on vs auto-lifecycle)"
   value = var.enable_cribl ? {
     daily = {
       always_on      = "$2.57/day"
-      auto_lifecycle = "$2.27/day"
-      breakdown      = "NAT: $0.08, Splunk: $0.41 (always-on) / $0.10 (lifecycle), Stream: $0.46, Edge/Win: $1.41, EBS: $0.21, S3: ~$0.02"
+      auto_lifecycle = "$2.26/day"
+      breakdown      = "NAT: $0.08, Splunk: $0.41 (always-on) / $0.10 (lifecycle), Stream: $0.46, Edge/Win: $1.41, EBS: $0.21"
     }
     monthly = {
       always_on      = "$77/mo"
       auto_lifecycle = "$68/mo"
-      breakdown      = "NAT: $2.52, Splunk: $12.18 (always-on) / $3.05 (lifecycle), Stream: $13.74, Edge/Win: $42.34, EBS: $6.17, S3: ~$0.50"
+      breakdown      = "NAT: $2.52, Splunk: $12.18 (always-on) / $3.05 (lifecycle), Stream: $13.74, Edge/Win: $42.34, EBS: $6.17"
     }
     } : {
     daily = {
-      always_on      = "$0.61/day"
-      auto_lifecycle = "$0.30/day"
-      breakdown      = "NAT: $0.08, Splunk: $0.41 (always-on) / $0.10 (lifecycle), EBS: $0.10, S3: ~$0.02"
+      always_on      = "$0.59/day"
+      auto_lifecycle = "$0.28/day"
+      breakdown      = "NAT: $0.08, Splunk: $0.41 (always-on) / $0.10 (lifecycle), EBS: $0.10"
     }
     monthly = {
-      always_on      = "$18.17/mo"
-      auto_lifecycle = "$9/mo"
-      breakdown      = "NAT: $2.52, Splunk: $12.18 (always-on) / $3.05 (lifecycle), EBS: $2.97, S3: ~$0.50"
+      always_on      = "$17.67/mo"
+      auto_lifecycle = "$8.54/mo"
+      breakdown      = "NAT: $2.52, Splunk: $12.18 (always-on) / $3.05 (lifecycle), EBS: $2.97"
     }
   }
 }

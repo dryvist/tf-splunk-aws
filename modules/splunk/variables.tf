@@ -82,11 +82,6 @@ variable "splunk_build" {
   }
 }
 
-variable "smartstore_bucket_name" {
-  description = "Name of the S3 bucket used for Splunk SmartStore remote storage"
-  type        = string
-}
-
 variable "enable_auto_lifecycle" {
   description = "Enable automatic start/stop lifecycle for Splunk instance"
   type        = bool

@@ -56,6 +56,31 @@ locals {
     # Install CloudWatch agent
     yum install -y amazon-cloudwatch-agent
 
+    # Mount the dedicated EBS data volume at /opt/splunk before installing Splunk.
+    # The instance attaches a gp3 volume at /dev/sdf (variable: splunk_data_volume_size).
+    # Without mounting, Splunk writes indexes to the small root volume and the data
+    # volume sits unused.
+    DATA_DEV=""
+    for candidate in /dev/nvme1n1 /dev/xvdf /dev/sdf; do
+      if [ -b "$candidate" ]; then
+        DATA_DEV="$candidate"
+        break
+      fi
+    done
+    if [ -z "$DATA_DEV" ]; then
+      echo "ERROR: Splunk data volume not found at /dev/nvme1n1, /dev/xvdf, or /dev/sdf." >&2
+      exit 1
+    fi
+    if ! blkid "$DATA_DEV" >/dev/null 2>&1; then
+      mkfs.xfs -f "$DATA_DEV"
+    fi
+    mkdir -p /opt/splunk
+    DATA_UUID=$(blkid -s UUID -o value "$DATA_DEV")
+    if ! grep -q "$DATA_UUID" /etc/fstab; then
+      echo "UUID=$DATA_UUID /opt/splunk xfs defaults,noatime 0 2" >> /etc/fstab
+    fi
+    mount /opt/splunk
+
     # Create splunk user
     useradd -r -m -s /bin/bash splunk
 
@@ -67,29 +92,6 @@ locals {
     sha512sum -c "$${SPLUNK_PKG}.sha512" || { echo "ERROR: Splunk package checksum mismatch. Aborting." >&2; exit 1; }
     tar -xzf "$${SPLUNK_PKG}"
     chown -R splunk:splunk /opt/splunk
-
-    # Configure SmartStore (S3 remote storage for warm/cold buckets)
-    # Must run before first Splunk start so indexes are created with SmartStore enabled
-    mkdir -p /opt/splunk/etc/system/local
-
-    cat > /opt/splunk/etc/system/local/indexes.conf << 'INDEXES'
-[volume:s3_store]
-storageType = remote
-path = s3://${var.smartstore_bucket_name}/smartstore
-
-[default]
-remotePath = volume:s3_store/$_index_name
-repFactor = 0
-maxDataSize = auto
-INDEXES
-
-    cat > /opt/splunk/etc/system/local/server.conf << 'SERVER'
-[cachemanager]
-max_cache_size = 5120
-eviction_policy = lru
-SERVER
-
-    chown -R splunk:splunk /opt/splunk/etc/system/local
 
     # Retrieve Splunk admin password from SSM Parameter Store (never stored in user_data)
     SPLUNK_PASSWORD=$(aws ssm get-parameter \
