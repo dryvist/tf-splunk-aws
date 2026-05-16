@@ -18,10 +18,10 @@ mock_provider "http" {
 mock_provider "criblio" {
   alias = "onprem"
 }
+mock_provider "null" {}
 mock_provider "criblio" {
   alias = "cloud"
 }
-mock_provider "null" {}
 
 # module.network is not overridden — running it under mock_provider keeps
 # its real outputs (vpc_cidr_block, subnet IDs) populated, which other
@@ -117,7 +117,7 @@ run "criblio_config_enabled_plan_succeeds" {
   }
 }
 
-run "onprem_bearer_token_is_sensitive" {
+run "onprem_bearer_token_defaults_to_empty" {
   command = plan
 
   assert {

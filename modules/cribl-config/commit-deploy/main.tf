@@ -21,41 +21,48 @@ terraform {
 resource "null_resource" "commit_deploy" {
   triggers = var.triggers
 
+  # Sensitive values are passed via the `environment` block, not interpolated
+  # into the command string. The shell reads CRIBL_* from env at runtime; no
+  # HCL `${...}` patterns appear in the script body, so the bearer token never
+  # enters process listings or CI logs.
   provisioner "local-exec" {
     interpreter = ["/bin/bash", "-c"]
-    command     = <<-CMD
+    environment = {
+      CRIBL_LEADER_URL = var.leader_url
+      CRIBL_TOKEN      = var.bearer_token
+      CRIBL_GROUP      = var.worker_group_id
+      TIMEOUT          = tostring(var.readiness_timeout_seconds)
+    }
+    command = <<-CMD
       set -euo pipefail
 
-      LEADER="${var.leader_url}"
-      TOKEN="${var.bearer_token}"
-      GROUP="${var.worker_group_id}"
-      DEADLINE=$((SECONDS + ${var.readiness_timeout_seconds}))
+      DEADLINE=$$((SECONDS + TIMEOUT))
 
-      if [ -z "$LEADER" ] || [ -z "$TOKEN" ]; then
-        echo "leader_url and bearer_token are required" >&2
+      if [ -z "$$CRIBL_LEADER_URL" ] || [ -z "$$CRIBL_TOKEN" ]; then
+        echo "CRIBL_LEADER_URL and CRIBL_TOKEN must both be set" >&2
         exit 1
       fi
 
       until curl -fsS -o /dev/null \
-        -H "Authorization: Bearer $TOKEN" \
-        "$LEADER/api/v1/system/info"; do
-        if [ $SECONDS -ge $DEADLINE ]; then
-          echo "leader $LEADER not ready after ${var.readiness_timeout_seconds}s" >&2
+        -H "Authorization: Bearer $$CRIBL_TOKEN" \
+        "$$CRIBL_LEADER_URL/api/v1/system/info"; do
+        if [ "$$SECONDS" -ge "$$DEADLINE" ]; then
+          echo "leader $$CRIBL_LEADER_URL not ready after $${TIMEOUT}s" >&2
           exit 1
         fi
         sleep 5
       done
 
       curl -fsS -X POST \
-        -H "Authorization: Bearer $TOKEN" \
+        -H "Authorization: Bearer $$CRIBL_TOKEN" \
         -H "Content-Type: application/json" \
-        "$LEADER/api/v1/m/$GROUP/version/commit" \
-        -d '{"message":"tf-splunk-aws: terraform apply"}'
+        "$$CRIBL_LEADER_URL/api/v1/m/$$CRIBL_GROUP/version/commit" \
+        -d '{"message":"tf-splunk-aws: tofu apply"}'
 
       curl -fsS -X POST \
-        -H "Authorization: Bearer $TOKEN" \
+        -H "Authorization: Bearer $$CRIBL_TOKEN" \
         -H "Content-Type: application/json" \
-        "$LEADER/api/v1/master/groups/$GROUP/deploy"
+        "$$CRIBL_LEADER_URL/api/v1/master/groups/$$CRIBL_GROUP/deploy"
     CMD
   }
 }

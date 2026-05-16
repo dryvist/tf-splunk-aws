@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# CI gate enforcing modules/docs/terraform-testing-standards.md §7.
+# CI gate enforcing docs/terraform-testing-standards.md §7.
 #
 # Three checks, all blocking:
 #   1. Full suite passes.
@@ -40,7 +40,8 @@ echo ">>> Check 2: per-file isolation"
 # in the comment.
 exclude_files=(
   # tests/security.tftest.hcl: nat/splunk SG output equality assertion collides
-  # under mock_provider random ID generation. Tracked separately.
+  # under mock_provider random ID generation.
+  # Tracked: https://github.com/JacobPEvans/tf-splunk-aws/issues/183
   "tests/security.tftest.hcl"
 )
 isolation_failures=()
@@ -66,12 +67,31 @@ if [ "${#isolation_failures[@]}" -gt 0 ]; then
 fi
 
 echo ">>> Check 3: mock_provider drift"
-# Match only lines whose first non-whitespace token is the mock_provider
-# directive, not comments that happen to mention it.
-mp_pattern='^[[:space:]]*mock_provider[[:space:]]'
-canon=$(grep -hE "$mp_pattern" "${test_files[0]}" | sort -u)
+# Extract (provider_name, alias_or_default) pairs by walking each mock_provider
+# block. `grep` on the directive line alone misses aliases on subsequent lines
+# and `sort -u` collapses two aliased blocks for the same provider into one,
+# making alias drift invisible.
+extract_pairs() {
+  awk '
+    /^[[:space:]]*mock_provider[[:space:]]+"[^"]+"/ {
+      match($0, /"[^"]+"/); name=substr($0, RSTART+1, RLENGTH-2);
+      if (match($0, /\{[[:space:]]*\}/)) { print name " <default>"; next }
+      in_block=1; alias=""; next
+    }
+    in_block && /^[[:space:]]*alias[[:space:]]*=[[:space:]]*"[^"]+"/ {
+      match($0, /"[^"]+"[[:space:]]*$/); alias=substr($0, RSTART+1, RLENGTH-2);
+      gsub(/[[:space:]]+$/, "", alias); next
+    }
+    in_block && /^[[:space:]]*}[[:space:]]*$/ {
+      if (alias == "") alias = "<default>";
+      print name " " alias;
+      in_block=0; name=""; alias=""; next
+    }
+  ' "$1" | sort -u
+}
+canon=$(extract_pairs "${test_files[0]}")
 for f in "${test_files[@]}"; do
-  this=$(grep -hE "$mp_pattern" "$f" | sort -u)
+  this=$(extract_pairs "$f")
   if [ "$this" != "$canon" ]; then
     echo "mock_provider drift in $f vs ${test_files[0]}:" >&2
     diff <(echo "$canon") <(echo "$this") >&2 || true

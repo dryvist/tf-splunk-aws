@@ -28,11 +28,15 @@ terraform {
 }
 
 # criblio provider — two aliases:
-#   onprem (default): bearer-token auth against the Stream leader EC2 instance
-#   cloud           : OAuth2 client credentials against Cribl.Cloud
-# Both read most config from env vars (CRIBL_*); explicit args win when set.
+#   onprem: bearer_auth against the Stream leader EC2 instance
+#   cloud : OAuth2 client credentials against Cribl.Cloud
+# Both aliases fall back to provider env vars (CRIBL_*) when the corresponding
+# variable is empty, so terragrunt callers can choose either pattern.
 provider "criblio" {
   alias = "onprem"
+
+  server_url  = var.cribl_onprem_server_url != "" ? var.cribl_onprem_server_url : null
+  bearer_auth = var.cribl_onprem_bearer_token != "" ? var.cribl_onprem_bearer_token : null
 }
 
 provider "criblio" {
@@ -282,10 +286,20 @@ module "cribl" {
   windows_ami_id              = data.aws_ami.windows_2022.id
 }
 
+# Plan-time guard: when the criblio config layer is enabled, both the
+# on-prem leader URL and bearer token must be supplied. Otherwise the
+# provider and commit-deploy step both fail much later, at apply.
+check "criblio_onprem_credentials_when_enabled" {
+  assert {
+    condition = !var.enable_criblio_config || (
+      var.cribl_onprem_server_url != "" && var.cribl_onprem_bearer_token != ""
+    )
+    error_message = "enable_criblio_config = true requires cribl_onprem_server_url and cribl_onprem_bearer_token (sourced from SSM via terragrunt inputs)."
+  }
+}
+
 # Cribl Config Module — declarative Cribl object management via criblio provider.
 # Sits on top of module.cribl. Disabled by default; gated by var.enable_criblio_config.
-# When enabled, var.cribl_onprem_server_url and var.cribl_onprem_bearer_token must be set
-# (typically: server_url derived from module.cribl outputs, token from SSM Parameter Store).
 module "cribl_config" {
   source = "./cribl-config"
 
