@@ -122,13 +122,13 @@ output "estimated_cost" {
   description = "Estimated daily and monthly cost in USD (always-on vs auto-lifecycle)"
   value = var.enable_cribl ? {
     daily = {
-      always_on      = "$2.55/day"
-      auto_lifecycle = "$2.25/day"
+      always_on      = "$2.57/day"
+      auto_lifecycle = "$2.26/day"
       breakdown      = "NAT: $0.08, Splunk: $0.41 (always-on) / $0.10 (lifecycle), Stream: $0.46, Edge/Win: $1.41, EBS: $0.21"
     }
     monthly = {
       always_on      = "$77/mo"
-      auto_lifecycle = "$67/mo"
+      auto_lifecycle = "$68/mo"
       breakdown      = "NAT: $2.52, Splunk: $12.18 (always-on) / $3.05 (lifecycle), Stream: $13.74, Edge/Win: $42.34, EBS: $6.17"
     }
     } : {
