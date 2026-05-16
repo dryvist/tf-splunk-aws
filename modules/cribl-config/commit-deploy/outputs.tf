@@ -1,4 +1,4 @@
-output "id" {
-  description = "null_resource ID; useful as a depends_on target."
-  value       = null_resource.commit_deploy.id
+output "commit_sha" {
+  description = "SHA of the commit produced this apply; useful as a depends_on / health indicator."
+  value       = criblio_commit.this.items[0].commit
 }

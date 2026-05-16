@@ -306,9 +306,6 @@ module "cribl_config" {
   enable_criblio_config = var.enable_criblio_config
   environment           = var.environment
 
-  onprem_server_url   = var.cribl_onprem_server_url
-  onprem_bearer_token = var.cribl_onprem_bearer_token
-
   providers = {
     criblio.onprem = criblio.onprem
     criblio.cloud  = criblio.cloud

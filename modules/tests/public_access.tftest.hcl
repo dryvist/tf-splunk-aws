@@ -22,7 +22,6 @@ mock_provider "http" {
 mock_provider "criblio" {
   alias = "onprem"
 }
-mock_provider "null" {}
 mock_provider "criblio" {
   alias = "cloud"
 }

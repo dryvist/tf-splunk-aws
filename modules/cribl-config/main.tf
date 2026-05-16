@@ -49,11 +49,13 @@ module "commit_deploy" {
   count  = local.enabled ? 1 : 0
 
   worker_group_id = module.worker_group[0].id
-  leader_url      = var.onprem_server_url
-  bearer_token    = var.onprem_bearer_token
 
   # Re-deploy whenever any managed object's content hash changes.
   triggers = {
     worker_group = module.worker_group[0].content_hash
+  }
+
+  providers = {
+    criblio = criblio.onprem
   }
 }
