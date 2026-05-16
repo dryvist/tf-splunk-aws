@@ -17,6 +17,13 @@ mock_provider "http" {
   }
 }
 
+mock_provider "criblio" {
+  alias = "onprem"
+}
+mock_provider "criblio" {
+  alias = "cloud"
+}
+
 # Override all modules EXCEPT cribl (test subject)
 override_module {
   target = module.security

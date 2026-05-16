@@ -20,7 +20,33 @@ terraform {
       source  = "hashicorp/http"
       version = "~> 3.0"
     }
+    criblio = {
+      source  = "criblio/criblio"
+      version = "1.23.32"
+    }
   }
+}
+
+# criblio provider — two aliases:
+#   onprem: bearer_auth against the Stream leader EC2 instance
+#   cloud : OAuth2 client credentials against Cribl.Cloud
+# Both aliases fall back to provider env vars (CRIBL_*) when the corresponding
+# variable is empty, so terragrunt callers can choose either pattern.
+provider "criblio" {
+  alias = "onprem"
+
+  server_url  = var.cribl_onprem_server_url != "" ? var.cribl_onprem_server_url : null
+  bearer_auth = var.cribl_onprem_bearer_token != "" ? var.cribl_onprem_bearer_token : null
+}
+
+provider "criblio" {
+  alias = "cloud"
+
+  client_id       = var.cribl_cloud_client_id != "" ? var.cribl_cloud_client_id : null
+  client_secret   = var.cribl_cloud_client_secret != "" ? var.cribl_cloud_client_secret : null
+  organization_id = var.cribl_cloud_organization_id != "" ? var.cribl_cloud_organization_id : null
+  workspace_id    = var.cribl_cloud_workspace_id != "" ? var.cribl_cloud_workspace_id : null
+  cloud_domain    = var.cribl_cloud_domain
 }
 
 # AWS account identity - used for unique S3 bucket naming
@@ -258,6 +284,32 @@ module "cribl" {
   instance_profile_name       = var.enable_cribl ? module.security.cribl_instance_profile_name : null
   linux_ami_id                = data.aws_ami.amazon_linux_x86.id
   windows_ami_id              = data.aws_ami.windows_2022.id
+}
+
+# Plan-time guard: when the criblio config layer is enabled, both the
+# on-prem leader URL and bearer token must be supplied. Otherwise the
+# provider and commit-deploy step both fail much later, at apply.
+check "criblio_onprem_credentials_when_enabled" {
+  assert {
+    condition = !var.enable_criblio_config || (
+      var.cribl_onprem_server_url != "" && var.cribl_onprem_bearer_token != ""
+    )
+    error_message = "enable_criblio_config = true requires cribl_onprem_server_url and cribl_onprem_bearer_token (sourced from SSM via terragrunt inputs)."
+  }
+}
+
+# Cribl Config Module — declarative Cribl object management via criblio provider.
+# Sits on top of module.cribl. Disabled by default; gated by var.enable_criblio_config.
+module "cribl_config" {
+  source = "./cribl-config"
+
+  enable_criblio_config = var.enable_criblio_config
+  environment           = var.environment
+
+  providers = {
+    criblio.onprem = criblio.onprem
+    criblio.cloud  = criblio.cloud
+  }
 }
 
 # Route private subnet traffic through NAT instance

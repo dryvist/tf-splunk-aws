@@ -206,3 +206,55 @@ variable "lifecycle_interval_hours" {
     error_message = "lifecycle_interval_hours must be an integer greater than or equal to 1."
   }
 }
+
+# --- criblio config layer (Phase 2: additive, default off) -------------------
+
+variable "enable_criblio_config" {
+  description = "Enable the criblio-managed Cribl config layer (modules/cribl-config/). When false, the layer is a no-op."
+  type        = bool
+  default     = false
+}
+
+variable "cribl_onprem_server_url" {
+  description = "On-prem Cribl leader base URL (e.g. http://1.2.3.4:4200). Required when enable_criblio_config = true."
+  type        = string
+  default     = ""
+}
+
+variable "cribl_onprem_bearer_token" {
+  description = "Bearer token for the on-prem Cribl leader. Sensitive. Source from SSM Parameter Store via the terragrunt inputs block."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "cribl_cloud_client_id" {
+  description = "Cribl.Cloud OAuth2 client_id. Optional; declared for future Cloud workspace use."
+  type        = string
+  default     = ""
+}
+
+variable "cribl_cloud_client_secret" {
+  description = "Cribl.Cloud OAuth2 client_secret. Sensitive."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "cribl_cloud_organization_id" {
+  description = "Cribl.Cloud organization id."
+  type        = string
+  default     = ""
+}
+
+variable "cribl_cloud_workspace_id" {
+  description = "Cribl.Cloud workspace id."
+  type        = string
+  default     = ""
+}
+
+variable "cribl_cloud_domain" {
+  description = "Cribl.Cloud domain. Provider default is cribl.cloud."
+  type        = string
+  default     = "cribl.cloud"
+}

@@ -17,6 +17,13 @@ mock_provider "http" {
   }
 }
 
+mock_provider "criblio" {
+  alias = "onprem"
+}
+mock_provider "criblio" {
+  alias = "cloud"
+}
+
 # Override child modules so the root module output expressions resolve at plan time.
 override_module {
   target = module.security

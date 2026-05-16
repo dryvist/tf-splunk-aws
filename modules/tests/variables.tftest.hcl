@@ -16,6 +16,13 @@ mock_provider "http" {
   }
 }
 
+mock_provider "criblio" {
+  alias = "onprem"
+}
+mock_provider "criblio" {
+  alias = "cloud"
+}
+
 # Shared valid defaults for all runs
 variables {
   environment          = "dev"

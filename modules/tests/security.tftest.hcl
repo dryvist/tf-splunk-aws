@@ -17,6 +17,13 @@ mock_provider "http" {
   }
 }
 
+mock_provider "criblio" {
+  alias = "onprem"
+}
+mock_provider "criblio" {
+  alias = "cloud"
+}
+
 # Override compute and splunk modules to isolate security concerns.
 override_module {
   target = module.compute

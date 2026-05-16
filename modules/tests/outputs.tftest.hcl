@@ -17,6 +17,13 @@ mock_provider "http" {
   }
 }
 
+mock_provider "criblio" {
+  alias = "onprem"
+}
+mock_provider "criblio" {
+  alias = "cloud"
+}
+
 # Override all child modules with realistic mock outputs so the root module
 # output expressions can be evaluated at plan time.
 override_module {
