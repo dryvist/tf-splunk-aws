@@ -22,7 +22,7 @@ terraform {
     }
     criblio = {
       source  = "criblio/criblio"
-      version = "1.23.32"
+      version = "~> 1.23"
     }
   }
 }
