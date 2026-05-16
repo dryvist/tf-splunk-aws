@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/JacobPEvans/tf-splunk-aws/compare/v0.15.0...v0.15.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* **splunk:** drop redundant set web-port/restart that broke pipefail ([#186](https://github.com/JacobPEvans/tf-splunk-aws/issues/186)) ([1fe3b14](https://github.com/JacobPEvans/tf-splunk-aws/commit/1fe3b14c4e3ac79a632a6968b286d6eb4eaae4a9))
+
 ## [0.15.0](https://github.com/JacobPEvans/tf-splunk-aws/compare/v0.14.11...v0.15.0) (2026-05-16)
 
 
