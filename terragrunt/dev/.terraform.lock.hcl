@@ -1,6 +1,28 @@
 # This file is maintained automatically by "tofu init".
 # Manual edits may be lost in future updates.
 
+provider "registry.opentofu.org/criblio/criblio" {
+  version     = "1.23.32"
+  constraints = "1.23.32"
+  hashes = [
+    "h1:S+gRJQ4FrCy/JVHuCso3RaA7lbK+0n2+O4QirSpzchw=",
+    "zh:0a207fe8b9ac04bb52e7d699ce6b5b00fd399b27bde510584a33398000c03be2",
+    "zh:51b2dd5a31b31d3a0936f6578c0f513f17d20711371468c0ed148b42618a6d0d",
+    "zh:6527cd9267da1fec867d49d7d6ad3c3fdadc6c204fb11c1e13bc6fd67ea00e6f",
+    "zh:71aa8f0efb70e0560723436ef8ca384584c11cd4ab0c21906cda0a012773da0a",
+    "zh:74e79f6cb1aa71f763be1c6f6a4960b80136094b30d30fd14aa81dce49daade9",
+    "zh:890df766e9b839623b1f0437355032a3c006226a6c200cd911e15ee1a9014e9f",
+    "zh:8ed317889b3218cf66e9e268bfcf963f89b306936790bb62fb3b4da9d7d96756",
+    "zh:9440bec96c043ed644656d944eef699194bd2b07854459b521a62725d02609c3",
+    "zh:997f9e108ab0a4912f87a6496a77269f14f9033a683b28e93910f7886a7ae7b3",
+    "zh:a0479bc889e86dcffe4a119d2b465a458530c346a8e75f2f3dbee56aabfada7b",
+    "zh:aec2c48ab0e78797ece297ddc8ca0388beeef28f3fe0a7849a7f7b4a0890be31",
+    "zh:b9bafa229f4854103c5094994ef1e2a4e1618a3b3eef8c8896576f07315ec614",
+    "zh:d4e5f54c4b16ee69d89fe12929fdb57e29391a69a683b9bf27d123808ebbd923",
+    "zh:e1f42639c55dba27d384a6fddde6ab0a541a55dccc211ee5324c2ff2928d46e4",
+  ]
+}
+
 provider "registry.opentofu.org/hashicorp/aws" {
   version     = "6.44.0"
   constraints = "~> 6.0"
