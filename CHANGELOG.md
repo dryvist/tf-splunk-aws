@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.0](https://github.com/JacobPEvans/tf-splunk-aws/compare/v0.14.11...v0.15.0) (2026-05-16)
+
+
+### Features
+
+* **cribl-config:** add criblio provider config layer behind feature flag ([7f537e2](https://github.com/JacobPEvans/tf-splunk-aws/commit/7f537e2746726ac1b3a5ab47d64c1d1508184655))
+
 ## [0.14.11](https://github.com/JacobPEvans/tf-splunk-aws/compare/v0.14.10...v0.14.11) (2026-05-14)
 
 
