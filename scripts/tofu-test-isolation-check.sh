@@ -38,12 +38,7 @@ echo ">>> Check 2: per-file isolation"
 # Pre-existing isolation failures are tracked as repo issues and excluded here
 # rather than via bypassing the check. Add new entries only with a linked issue
 # in the comment.
-exclude_files=(
-  # tests/security.tftest.hcl: nat/splunk SG output equality assertion collides
-  # under mock_provider random ID generation.
-  # Tracked: https://github.com/JacobPEvans/tf-splunk-aws/issues/183
-  "tests/security.tftest.hcl"
-)
+exclude_files=()
 isolation_failures=()
 for f in "${test_files[@]}"; do
   rel="${f#${repo_root}/modules/}"
