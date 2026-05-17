@@ -157,6 +157,20 @@ run "security_group_outputs_are_non_null" {
 run "nat_and_splunk_security_groups_are_separate" {
   command = plan
 
+  override_resource {
+    target = module.security.aws_security_group.nat_instance
+    values = {
+      id = "sg-00000000000000001"
+    }
+  }
+
+  override_resource {
+    target = module.security.aws_security_group.splunk
+    values = {
+      id = "sg-00000000000000002"
+    }
+  }
+
   assert {
     condition     = output.nat_security_group_id != output.splunk_security_group_id
     error_message = "NAT and Splunk must have separate security groups for least-privilege access control"
