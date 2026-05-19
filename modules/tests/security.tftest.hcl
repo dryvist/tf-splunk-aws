@@ -172,6 +172,16 @@ run "nat_and_splunk_security_groups_are_separate" {
   }
 
   assert {
+    condition     = output.nat_security_group_id == "sg-00000000000000001"
+    error_message = "nat_security_group_id output must surface the NAT SG, not the Splunk SG (catches swapped wiring)"
+  }
+
+  assert {
+    condition     = output.splunk_security_group_id == "sg-00000000000000002"
+    error_message = "splunk_security_group_id output must surface the Splunk SG, not the NAT SG (catches swapped wiring)"
+  }
+
+  assert {
     condition     = output.nat_security_group_id != output.splunk_security_group_id
     error_message = "NAT and Splunk must have separate security groups for least-privilege access control"
   }
