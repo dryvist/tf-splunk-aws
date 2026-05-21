@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.3](https://github.com/JacobPEvans/tf-splunk-aws/compare/v0.15.2...v0.15.3) (2026-05-21)
+
+
+### Bug Fixes
+
+* **deps:** refresh gh-aw action SHA pins ([#200](https://github.com/JacobPEvans/tf-splunk-aws/issues/200)) ([86e356c](https://github.com/JacobPEvans/tf-splunk-aws/commit/86e356c2a17a184546562c3252f32f914e561fbc))
+
 ## [0.15.2](https://github.com/JacobPEvans/tf-splunk-aws/compare/v0.15.1...v0.15.2) (2026-05-18)
 
 
