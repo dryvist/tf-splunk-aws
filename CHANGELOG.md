@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.15.4](https://github.com/dryvist/tf-splunk-aws/compare/v0.15.3...v0.15.4) (2026-06-01)
+
+
+### Bug Fixes
+
+* **ci:** repoint release-please caller to org-native reusable workflow ([#209](https://github.com/dryvist/tf-splunk-aws/issues/209)) ([52ff885](https://github.com/dryvist/tf-splunk-aws/commit/52ff885315ad69dbb92d3d6c0988c597542ad2cd))
+* **ci:** retarget reusable-workflow uses: refs to current org homes ([#207](https://github.com/dryvist/tf-splunk-aws/issues/207)) ([36a2974](https://github.com/dryvist/tf-splunk-aws/commit/36a2974482bda1125b06d523b46c9f03985d2b06))
+
 ## [0.15.3](https://github.com/JacobPEvans/tf-splunk-aws/compare/v0.15.2...v0.15.3) (2026-05-21)
 
 
