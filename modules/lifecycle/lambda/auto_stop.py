@@ -29,7 +29,6 @@ AUTO_STOP_AFTER_HOURS = float(os.environ.get("AUTO_STOP_AFTER_HOURS", "48"))
 
 def handler(event, context):  # noqa: ARG001 - signature fixed by Lambda runtime
     now = datetime.datetime.now(datetime.timezone.utc)
-    cutoff = datetime.timedelta(hours=AUTO_STOP_AFTER_HOURS)
 
     paginator = ec2.get_paginator("describe_instances")
     pages = paginator.paginate(
@@ -44,7 +43,7 @@ def handler(event, context):  # noqa: ARG001 - signature fixed by Lambda runtime
         for reservation in page["Reservations"]:
             for instance in reservation["Instances"]:
                 uptime_hours = (now - instance["LaunchTime"]).total_seconds() / 3600.0
-                if (now - instance["LaunchTime"]) >= cutoff:
+                if uptime_hours >= AUTO_STOP_AFTER_HOURS:
                     expired.append(instance["InstanceId"])
                     logger.info(
                         "stopping %s (uptime %.1fh >= %.1fh)",

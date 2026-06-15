@@ -78,7 +78,7 @@ resource "aws_iam_role_policy" "auto_stop" {
         Sid      = "StopProjectInstances"
         Effect   = "Allow"
         Action   = ["ec2:StopInstances"]
-        Resource = "*"
+        Resource = "arn:aws:ec2:*:*:instance/*"
         Condition = {
           StringEquals = { "aws:ResourceTag/Project" = var.project_tag }
         }
