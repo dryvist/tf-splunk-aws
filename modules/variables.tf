@@ -175,35 +175,24 @@ variable "cribl_allowed_cidrs" {
   default     = []
 }
 
-variable "enable_auto_lifecycle" {
-  description = "Enable automatic start/stop lifecycle for Splunk instance. EventBridge starts Splunk on a schedule; per-boot script stops it after auto_shutdown_minutes."
+variable "enable_auto_stop" {
+  description = "Enable the auto-stop guardrail (modules/lifecycle). An hourly Lambda stops any Project=splunk-aws instance running longer than auto_stop_after_hours. Replaces the old start/self-shutdown lifecycle."
   type        = bool
   default     = false
 }
 
-variable "auto_shutdown_minutes" {
-  description = "Minutes after boot before Splunk auto-shuts down (requires enable_auto_lifecycle = true). Default 60 = 1 hour per start."
+variable "auto_stop_after_hours" {
+  description = "Stop an in-scope instance once it has been running this many hours since its most recent start (requires enable_auto_stop = true). Default 48 = 2 days."
   type        = number
-  default     = 60
+  default     = 48
 
   validation {
     condition = (
-      var.auto_shutdown_minutes >= 1 &&
-      floor(var.auto_shutdown_minutes) == var.auto_shutdown_minutes &&
-      var.auto_shutdown_minutes <= 10080
+      var.auto_stop_after_hours >= 1 &&
+      floor(var.auto_stop_after_hours) == var.auto_stop_after_hours &&
+      var.auto_stop_after_hours <= 720
     )
-    error_message = "auto_shutdown_minutes must be an integer between 1 and 10080 (7 days)."
-  }
-}
-
-variable "lifecycle_interval_hours" {
-  description = "Hours between automatic Splunk starts via EventBridge Scheduler (requires enable_auto_lifecycle = true). Default 4 = 6 starts/day."
-  type        = number
-  default     = 4
-
-  validation {
-    condition     = var.lifecycle_interval_hours >= 1 && floor(var.lifecycle_interval_hours) == var.lifecycle_interval_hours
-    error_message = "lifecycle_interval_hours must be an integer greater than or equal to 1."
+    error_message = "auto_stop_after_hours must be an integer between 1 and 720 (30 days)."
   }
 }
 

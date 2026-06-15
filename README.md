@@ -14,23 +14,26 @@ by Cribl writing directly to S3 outside this module.
 
 ## Quick Facts
 
-- **Cost**: ~$17.67/month always-on; ~$8.54/month with `enable_auto_lifecycle = true`
+- **Cost**: ~$17.67/month while running; an `enable_auto_stop` guardrail stops the whole stack 48h after each start so it can't quietly run up the bill
 - **Architecture**: 4 modules (network, security, compute, splunk)
 - **Deployment**: Terragrunt-managed with remote state
 - **Security**: Encrypted storage, IAM least privilege, VPC isolation
 
 ## Cost Breakdown
 
-| Resource | Always-On | Auto-Lifecycle |
-| -------- | --------- | -------------- |
-| NAT Instance (t4g.nano) | $2.52 | $2.52 |
-| Splunk Instance (t4g.small) | $12.18 | ~$3.05 (25% utilization) |
+| Resource | Running | Stopped (by guardrail) |
+| -------- | ------- | ---------------------- |
+| NAT Instance (t4g.nano) | $2.52 | $0 |
+| Splunk Instance (t3a.small) | $12.18 | $0 |
 | EBS Storage (70GB GP3) | $2.97 | $2.97 |
-| **Total** | **~$17.67** | **~$8.54** |
+| **Total** | **~$17.67** | **~$2.97** |
 
 Index data lives on the local EBS volume. Cribl handles long-term archive to S3
 out-of-band, so this module no longer manages a SmartStore bucket.
-Auto-lifecycle (`enable_auto_lifecycle = true`) starts Splunk every 4 hours for 60 minutes.
+The `enable_auto_stop` guardrail (an hourly Lambda) stops every `Project=splunk-aws`
+instance 48h after it starts, so the stack only costs the "Running" rate while
+actively in use and drops to EBS-only once stopped — compute and public-IPv4
+charges stop with the instances.
 
 ## Quick Start
 

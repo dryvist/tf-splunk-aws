@@ -195,9 +195,17 @@ module "splunk" {
   ami_id                       = data.aws_ami.amazon_linux_x86.id
   splunk_version               = var.splunk_version
   splunk_build                 = var.splunk_build
-  enable_auto_lifecycle        = var.enable_auto_lifecycle
-  auto_shutdown_minutes        = var.auto_shutdown_minutes
-  lifecycle_interval_hours     = var.lifecycle_interval_hours
+}
+
+# Lifecycle Module — auto-stop guardrail covering every Project=splunk-aws
+# instance (Splunk, Cribl Stream, Cribl Edge, NAT). An hourly Lambda stops any
+# in-scope instance running longer than auto_stop_after_hours.
+module "lifecycle" {
+  source = "./lifecycle"
+
+  environment           = var.environment
+  enable_auto_stop      = var.enable_auto_stop
+  auto_stop_after_hours = var.auto_stop_after_hours
 }
 
 # Cribl Module (Stream + Edge)

@@ -1,5 +1,7 @@
 # Terraform files
 .terraform/
+# Lambda build artifacts (generated at plan time by data.archive_file)
+**/.build/
 *.tfstate
 *.tfstate.*
 crash.log

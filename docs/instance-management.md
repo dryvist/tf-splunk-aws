@@ -135,9 +135,9 @@ aws-vault exec tf-splunk-aws -- aws ec2 describe-instances \
 
 Splunk Web is available at `http://<new-ip>:8000` after ~2–3 minutes boot time.
 On resume, Splunk starts automatically via the boot-start service configured during
-first-boot provisioning. If `enable_auto_lifecycle = true`, the per-boot shutdown
-script (`/var/lib/cloud/scripts/per-boot/auto-shutdown.sh`) also runs and schedules
-automatic shutdown after `auto_shutdown_minutes`.
+first-boot provisioning. If `enable_auto_stop = true`, the auto-stop guardrail will
+stop the instance again once it has been running for `auto_stop_after_hours`
+(default 48).
 
 ---
 
@@ -160,15 +160,16 @@ On-prem forwarders will queue events locally (Splunk's disk-based queue) and
 replay them when connectivity is restored. No events are lost as long as the
 on-prem queue does not fill up.
 
-### Auto-lifecycle alternative
+### Auto-stop guardrail
 
-If you want automated cost control without manual steps, set
-`enable_auto_lifecycle = true` in `terragrunt/dev/terragrunt.hcl`. This uses
-EventBridge Scheduler to start Splunk on a configurable interval
-(`lifecycle_interval_hours`, default 4) and shut it down automatically after
-`auto_shutdown_minutes` (default 60). The NAT instance must remain running to
-provide egress routing for the Splunk instance (private-subnet traffic to SSM
-and other AWS endpoints routes through NAT).
+For automated cost control without manual steps, set `enable_auto_stop = true`
+in `terragrunt/dev/terragrunt.hcl` (the dev default). An EventBridge Scheduler
+invokes a Lambda hourly that stops every `Project=splunk-aws` instance — Splunk,
+both Cribl boxes, and the NAT instance — once it has been running longer than
+`auto_stop_after_hours` (default 48). Because it stops via the EC2 API rather than
+an in-guest shutdown, it also covers the Windows Cribl Edge instance. There is no
+auto-start: the stack stays off until you deliberately start it, then self-stops
+within ~1h of the 48h mark.
 
 ### Elastic IP (EIP)
 
