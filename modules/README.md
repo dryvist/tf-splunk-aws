@@ -54,7 +54,7 @@ Splunk infrastructure:
 - CloudWatch integration for monitoring
 - Automated user data scripts
 - Proper security group configuration
-- Auto-stop guardrail: `enable_auto_stop = true` stops Project=splunk-aws instances 48h after start (EBS-only ~$2.97/mo when stopped vs ~$17.67/mo running)
+- Auto-stop guardrail: `enable_auto_stop = true` stops Project=splunk-aws instances on a nightly schedule (EBS-only ~$2.97/mo when stopped vs ~$17.67/mo running)
 
 ## 💰 Cost Efficiency
 

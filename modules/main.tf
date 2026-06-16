@@ -198,14 +198,14 @@ module "splunk" {
 }
 
 # Lifecycle Module — auto-stop guardrail covering every Project=splunk-aws
-# instance (Splunk, Cribl Stream, Cribl Edge, NAT). An hourly Lambda stops any
-# in-scope instance running longer than auto_stop_after_hours.
+# instance (Splunk, Cribl Stream, Cribl Edge, NAT). An EventBridge Scheduler runs
+# the AWS-StopEC2Instance runbook on a schedule; no Lambda, tag-driven.
 module "lifecycle" {
   source = "./lifecycle"
 
-  environment           = var.environment
-  enable_auto_stop      = var.enable_auto_stop
-  auto_stop_after_hours = var.auto_stop_after_hours
+  environment              = var.environment
+  enable_auto_stop         = var.enable_auto_stop
+  stop_schedule_expression = var.stop_schedule_expression
 }
 
 # Cribl Module (Stream + Edge)

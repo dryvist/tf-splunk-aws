@@ -14,7 +14,7 @@ by Cribl writing directly to S3 outside this module.
 
 ## Quick Facts
 
-- **Cost**: ~$17.67/month while running; an `enable_auto_stop` guardrail stops the whole stack 48h after each start so it can't quietly run up the bill
+- **Cost**: ~$17.67/month while running; an `enable_auto_stop` guardrail stops the whole stack on a nightly schedule so it can't quietly run up the bill
 - **Architecture**: 4 modules (network, security, compute, splunk)
 - **Deployment**: Terragrunt-managed with remote state
 - **Security**: Encrypted storage, IAM least privilege, VPC isolation
@@ -30,10 +30,11 @@ by Cribl writing directly to S3 outside this module.
 
 Index data lives on the local EBS volume. Cribl handles long-term archive to S3
 out-of-band, so this module no longer manages a SmartStore bucket.
-The `enable_auto_stop` guardrail (an hourly Lambda) stops every `Project=splunk-aws`
-instance 48h after it starts, so the stack only costs the "Running" rate while
-actively in use and drops to EBS-only once stopped — compute and public-IPv4
-charges stop with the instances.
+The `enable_auto_stop` guardrail runs the AWS-owned `AWS-StopEC2Instance` runbook on
+a schedule (nightly by default) via EventBridge Scheduler, stopping every
+`Project=splunk-aws` instance — no Lambda, tag-driven. The stack only costs the
+"Running" rate while actively in use and drops to EBS-only once stopped; compute and
+public-IPv4 charges stop with the instances.
 
 ## Quick Start
 

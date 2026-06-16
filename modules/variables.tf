@@ -176,23 +176,19 @@ variable "cribl_allowed_cidrs" {
 }
 
 variable "enable_auto_stop" {
-  description = "Enable the auto-stop guardrail (modules/lifecycle). An hourly Lambda stops any Project=splunk-aws instance running longer than auto_stop_after_hours. Replaces the old start/self-shutdown lifecycle."
+  description = "Enable the auto-stop guardrail (modules/lifecycle). An EventBridge Scheduler runs the AWS-StopEC2Instance runbook to stop every Project=splunk-aws instance on a schedule. Replaces the old start/self-shutdown lifecycle."
   type        = bool
   default     = false
 }
 
-variable "auto_stop_after_hours" {
-  description = "Stop an in-scope instance once it has been running this many hours since its most recent start (requires enable_auto_stop = true). Default 48 = 2 days."
-  type        = number
-  default     = 48
+variable "stop_schedule_expression" {
+  description = "EventBridge Scheduler expression for when to stop in-scope instances (requires enable_auto_stop = true). Default nightly 08:00 UTC; use e.g. \"rate(48 hours)\" for a looser lease."
+  type        = string
+  default     = "cron(0 8 * * ? *)"
 
   validation {
-    condition = (
-      var.auto_stop_after_hours >= 1 &&
-      floor(var.auto_stop_after_hours) == var.auto_stop_after_hours &&
-      var.auto_stop_after_hours <= 720
-    )
-    error_message = "auto_stop_after_hours must be an integer between 1 and 720 (30 days)."
+    condition     = can(regex("^(cron|rate)\\(", var.stop_schedule_expression))
+    error_message = "stop_schedule_expression must be a cron(...) or rate(...) expression."
   }
 }
 

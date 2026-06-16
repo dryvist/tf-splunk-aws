@@ -1,6 +1,6 @@
 # Tests for the auto-stop lifecycle guardrail (modules/lifecycle)
 #
-# Verifies that the enable_auto_stop flag and auto_stop_after_hours variable have
+# Verifies that the enable_auto_stop flag and stop_schedule_expression variable have
 # correct defaults, and that the root module plans successfully with the guardrail
 # both disabled and enabled. All runs use mock providers - no AWS credentials needed.
 
@@ -74,14 +74,13 @@ override_module {
   }
 }
 
-# Override the lifecycle module so the root plan resolves without evaluating the
-# Lambda/IAM resources (the mock AWS provider yields a non-ARN string that the
-# aws_lambda_function "role" attribute rejects at plan time). Consistent with the
-# other child-module overrides above; real ARNs are produced at apply.
+# Override the lifecycle module so the root plan resolves without evaluating its
+# scheduler resource: the mock AWS provider yields a non-ARN string that the
+# aws_scheduler_schedule "role_arn" attribute rejects at plan time. Consistent with
+# the other child-module overrides above; the real role ARN is produced at apply.
 override_module {
   target = module.lifecycle
   outputs = {
-    auto_stop_function_name = "dev-splunk-auto-stop"
     auto_stop_schedule_name = "dev-splunk-auto-stop"
   }
 }
@@ -108,14 +107,14 @@ run "auto_stop_disabled_by_default" {
   }
 }
 
-# --- auto_stop_after_hours defaults to 48 ---
+# --- stop_schedule_expression defaults to nightly cron ---
 
-run "auto_stop_after_hours_default_is_48" {
+run "stop_schedule_expression_default" {
   command = plan
 
   assert {
-    condition     = var.auto_stop_after_hours == 48
-    error_message = "auto_stop_after_hours must default to 48, got ${var.auto_stop_after_hours}"
+    condition     = var.stop_schedule_expression == "cron(0 8 * * ? *)"
+    error_message = "stop_schedule_expression must default to nightly cron, got ${var.stop_schedule_expression}"
   }
 }
 
@@ -139,13 +138,13 @@ run "auto_stop_enabled_plan_succeeds" {
   }
 }
 
-# --- Plan succeeds with a custom threshold ---
+# --- Plan succeeds with a custom schedule expression ---
 
-run "custom_auto_stop_after_hours_plan_succeeds" {
+run "custom_stop_schedule_expression_plan_succeeds" {
   command = plan
 
   variables {
-    enable_auto_stop      = true
-    auto_stop_after_hours = 24
+    enable_auto_stop         = true
+    stop_schedule_expression = "rate(48 hours)"
   }
 }

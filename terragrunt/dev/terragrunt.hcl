@@ -41,11 +41,11 @@ inputs = {
   web_allowed_cidrs = local.allowed_cidrs
   hec_allowed_cidrs = local.allowed_cidrs
 
-  # Auto-stop guardrail: hourly Lambda stops any Project=splunk-aws instance
-  # running longer than 48h. The stack stays off until deliberately started, then
-  # self-stops within ~1h of the 48h mark. Covers Splunk + both Cribl boxes + NAT.
-  enable_auto_stop      = true
-  auto_stop_after_hours = 48
+  # Auto-stop guardrail: an EventBridge Scheduler runs the AWS-StopEC2Instance
+  # runbook nightly (08:00 UTC) to stop every Project=splunk-aws instance — Splunk,
+  # both Cribl boxes, and NAT. Tag-driven, no Lambda. Override stop_schedule_expression
+  # for a different cadence (e.g. "rate(48 hours)").
+  enable_auto_stop = true
 
   # Splunk admin password: uses Doppler SPLUNK_PASSWORD if set, otherwise auto-generates
   splunk_admin_password = local.splunk_password != "" ? local.splunk_password : null

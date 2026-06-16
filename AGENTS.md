@@ -42,10 +42,10 @@ NETWORK
 | EBS (70GB gp3) | ~$2.97/mo | ~$2.97/mo |
 | **Total** | **~$17.67/mo** | **~$2.97/mo** |
 
-The `enable_auto_stop` guardrail (an hourly EventBridge Scheduler + Lambda) stops
-every `Project=splunk-aws` instance 48h after it starts, so a forgotten environment
-cannot run up the bill. Index data lives on the EBS data volume; long-term archive
-is handled by Cribl writing directly to S3 outside this module.
+The `enable_auto_stop` guardrail runs the AWS-owned `AWS-StopEC2Instance` runbook on a
+schedule (nightly by default) via EventBridge Scheduler, stopping every
+`Project=splunk-aws` instance — no Lambda, tag-driven. Index data lives on the EBS data
+volume; long-term archive is handled by Cribl writing directly to S3 outside this module.
 
 ## Technology Stack
 
