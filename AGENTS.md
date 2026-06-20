@@ -35,15 +35,17 @@ NETWORK
 
 ## Cost
 
-| Resource | Always-On | Auto-Lifecycle |
-| -------- | --------- | -------------- |
-| NAT (t4g.nano) | ~$2.52/mo | ~$2.52/mo |
-| Splunk (t4g.small) | ~$12.18/mo | ~$3.05/mo (25% utilization) |
+| Resource | Running | Stopped (by guardrail) |
+| -------- | ------- | ---------------------- |
+| NAT (t4g.nano) | ~$2.52/mo | $0 |
+| Splunk (t3a.small) | ~$12.18/mo | $0 |
 | EBS (70GB gp3) | ~$2.97/mo | ~$2.97/mo |
-| **Total** | **~$17.67/mo** | **~$8.54/mo** |
+| **Total** | **~$17.67/mo** | **~$2.97/mo** |
 
-Auto-lifecycle (`enable_auto_lifecycle = true`) starts Splunk every 4 hours for 60 minutes via EventBridge Scheduler.
-Index data lives on the EBS data volume; long-term archive is handled by Cribl writing directly to S3 outside this module.
+The `enable_auto_stop` guardrail runs the AWS-owned `AWS-StopEC2Instance` runbook on a
+schedule (nightly by default) via EventBridge Scheduler, stopping every
+`Project=splunk-aws` instance — no Lambda, tag-driven. Index data lives on the EBS data
+volume; long-term archive is handled by Cribl writing directly to S3 outside this module.
 
 ## Technology Stack
 

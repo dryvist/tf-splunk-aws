@@ -1,9 +1,8 @@
-# Tests for auto-lifecycle management
+# Tests for the auto-stop lifecycle guardrail (modules/lifecycle)
 #
-# Verifies that the enable_auto_lifecycle flag, auto_shutdown_minutes, and
-# lifecycle_interval_hours variables have correct defaults, and that the
-# module plans successfully with lifecycle both disabled and enabled.
-# All runs use mock providers - no AWS credentials needed.
+# Verifies that the enable_auto_stop flag and stop_schedule_expression variable have
+# correct defaults, and that the root module plans successfully with the guardrail
+# both disabled and enabled. All runs use mock providers - no AWS credentials needed.
 
 mock_provider "aws" {}
 mock_provider "random" {}
@@ -75,6 +74,17 @@ override_module {
   }
 }
 
+# Override the lifecycle module so the root plan resolves without evaluating its
+# scheduler resource: the mock AWS provider yields a non-ARN string that the
+# aws_scheduler_schedule "role_arn" attribute rejects at plan time. Consistent with
+# the other child-module overrides above; the real role ARN is produced at apply.
+override_module {
+  target = module.lifecycle
+  outputs = {
+    auto_stop_schedule_name = "dev-splunk-auto-stop"
+  }
+}
+
 # Shared valid defaults for all runs
 variables {
   environment          = "dev"
@@ -86,67 +96,55 @@ variables {
   splunk_instance_type = "t3a.small"
 }
 
-# --- enable_auto_lifecycle defaults to false ---
+# --- enable_auto_stop defaults to false ---
 
-run "auto_lifecycle_disabled_by_default" {
+run "auto_stop_disabled_by_default" {
   command = plan
 
   assert {
-    condition     = var.enable_auto_lifecycle == false
-    error_message = "enable_auto_lifecycle must default to false"
+    condition     = var.enable_auto_stop == false
+    error_message = "enable_auto_stop must default to false"
   }
 }
 
-# --- auto_shutdown_minutes defaults to 60 ---
+# --- stop_schedule_expression defaults to nightly cron ---
 
-run "auto_shutdown_minutes_default_is_60" {
+run "stop_schedule_expression_default" {
   command = plan
 
   assert {
-    condition     = var.auto_shutdown_minutes == 60
-    error_message = "auto_shutdown_minutes must default to 60, got ${var.auto_shutdown_minutes}"
+    condition     = var.stop_schedule_expression == "cron(0 8 * * ? *)"
+    error_message = "stop_schedule_expression must default to nightly cron, got ${var.stop_schedule_expression}"
   }
 }
 
-# --- lifecycle_interval_hours defaults to 4 ---
+# --- Plan succeeds with auto-stop disabled (default) ---
 
-run "lifecycle_interval_hours_default_is_4" {
-  command = plan
-
-  assert {
-    condition     = var.lifecycle_interval_hours == 4
-    error_message = "lifecycle_interval_hours must default to 4, got ${var.lifecycle_interval_hours}"
-  }
-}
-
-# --- Plan succeeds with lifecycle disabled (default) ---
-
-run "lifecycle_disabled_plan_succeeds" {
+run "auto_stop_disabled_plan_succeeds" {
   command = plan
 
   variables {
-    enable_auto_lifecycle = false
+    enable_auto_stop = false
   }
 }
 
-# --- Plan succeeds with lifecycle enabled ---
+# --- Plan succeeds with auto-stop enabled ---
 
-run "lifecycle_enabled_plan_succeeds" {
+run "auto_stop_enabled_plan_succeeds" {
   command = plan
 
   variables {
-    enable_auto_lifecycle = true
+    enable_auto_stop = true
   }
 }
 
-# --- Plan succeeds with custom lifecycle parameters ---
+# --- Plan succeeds with a custom schedule expression ---
 
-run "custom_lifecycle_parameters_plan_succeeds" {
+run "custom_stop_schedule_expression_plan_succeeds" {
   command = plan
 
   variables {
-    enable_auto_lifecycle    = true
-    auto_shutdown_minutes    = 90
-    lifecycle_interval_hours = 6
+    enable_auto_stop         = true
+    stop_schedule_expression = "rate(48 hours)"
   }
 }
