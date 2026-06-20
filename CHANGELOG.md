@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/dryvist/tf-splunk-aws/compare/v0.15.4...v1.0.0) (2026-06-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* **lifecycle:** enable_auto_lifecycle, auto_shutdown_minutes, and lifecycle_interval_hours input variables are removed and replaced by enable_auto_stop and auto_stop_after_hours.
+
+### Features
+
+* **lifecycle:** replace broken auto-start with native scheduled auto-stop ([#213](https://github.com/dryvist/tf-splunk-aws/issues/213)) ([6bdb987](https://github.com/dryvist/tf-splunk-aws/commit/6bdb987381c684a8e4ccfcaa120627ddc89dce3e))
+
 ## [0.15.4](https://github.com/dryvist/tf-splunk-aws/compare/v0.15.3...v0.15.4) (2026-06-01)
 
 
