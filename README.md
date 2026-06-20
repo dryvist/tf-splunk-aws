@@ -4,8 +4,9 @@
 [![License](https://img.shields.io/github/license/JacobPEvans/tf-splunk-aws)](LICENSE)
 
 Cost-optimized Splunk infrastructure on AWS using OpenTofu and Terragrunt.
-**~$8.54–$17.67/month** (optional auto-lifecycle). Long-term archive is handled
-by Cribl writing directly to S3 outside this module.
+**~$8.54–$17.67/month** (optional auto-lifecycle). This module provisions a
+Splunk-ready AWS footprint — network, security, compute, and a running Splunk
+instance — that a downstream configurator can take over for index and data setup.
 
 ## What & Why
 
@@ -36,7 +37,25 @@ a schedule (nightly by default) via EventBridge Scheduler, stopping every
 "Running" rate while actively in use and drops to EBS-only once stopped; compute and
 public-IPv4 charges stop with the instances.
 
-## Quick Start
+## Installation
+
+This repo pins its toolchain (`tofu`, `terragrunt`, and friends) in a
+[Nix dev shell][nix-develop], wired up through the committed `.envrc`. Activate it
+once per worktree — `direnv` reads `.envrc` and loads the shell automatically:
+
+```bash
+direnv allow
+```
+
+AWS credentials must be available in the environment (the remote state backend
+and provider both authenticate against AWS).
+
+[nix-develop]: https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-develop.html
+
+## Usage
+
+Each environment lives under `terragrunt/` (`dev`, `stg`, `prod`). Plan and apply
+from the target environment directory:
 
 ```bash
 cd terragrunt/dev
@@ -51,3 +70,7 @@ terragrunt apply   # Deploy infrastructure
 | **[Project Scope](.copilot/PROJECT.md)** | Business context, constraints | 2 min |
 | **[Architecture](.copilot/ARCHITECTURE.md)** | Technical decisions, current state | 5 min |
 | **[Implementation](modules/README.md)** | Module details, developer guide | 10 min |
+
+---
+
+> Part of a [larger ecosystem of ~40 repos](https://docs.jacobpevans.com) — see how it all fits together.
