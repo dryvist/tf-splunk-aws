@@ -176,8 +176,8 @@ tofu test -no-color
 
 | Variable | Source | Purpose |
 | -------- | ------ | ------- |
-| `SPLUNK_PASSWORD` | `iac-conf-mgmt/prd` | Splunk admin password (>= 8 chars) |
-| `NETWORK_PUBLIC_IP_ADDRESS` | `iac-conf-mgmt/prd` | Home IP for web/HEC CIDR allowlists |
+| `SPLUNK_PASSWORD` | Doppler | Splunk admin password (>= 8 chars) |
+| `NETWORK_PUBLIC_IP_ADDRESS` | Doppler | Home IP for web/HEC CIDR allowlists |
 
 ## Module Structure
 

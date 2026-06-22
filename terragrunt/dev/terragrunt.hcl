@@ -36,7 +36,7 @@ inputs = {
   management_allowed_cidrs = local.allowed_cidrs
   cribl_allowed_cidrs      = local.allowed_cidrs
 
-  # CIDRs from Doppler NETWORK_PUBLIC_IP_ADDRESS (iac-conf-mgmt/prd)
+  # CIDRs from Doppler NETWORK_PUBLIC_IP_ADDRESS
   # Never commit real IPs — empty default disables external access if env var unset
   web_allowed_cidrs = local.allowed_cidrs
   hec_allowed_cidrs = local.allowed_cidrs
