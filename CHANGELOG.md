@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/dryvist/tf-splunk-aws/compare/v1.0.0...v1.0.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* **deps:** refresh gh-aw action SHA pins [aw:gh-aw-pin-refresh] ([#219](https://github.com/dryvist/tf-splunk-aws/issues/219)) ([c66932e](https://github.com/dryvist/tf-splunk-aws/commit/c66932e2d14080eb9110f0f2a877ab44576a7eb8))
+
 ## [1.0.0](https://github.com/dryvist/tf-splunk-aws/compare/v0.15.4...v1.0.0) (2026-06-20)
 
 
