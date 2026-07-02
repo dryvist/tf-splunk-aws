@@ -89,6 +89,7 @@ variables {
   private_subnet_cidrs = ["10.0.10.0/24", "10.0.20.0/24"]
   nat_instance_type    = "t4g.nano"
   splunk_instance_type = "t3a.small"
+  enable_auto_stop     = false
 }
 
 # --- Plan succeeds with valid network inputs ---

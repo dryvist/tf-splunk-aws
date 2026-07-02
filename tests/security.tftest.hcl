@@ -70,12 +70,37 @@ variables {
   private_subnet_cidrs = ["10.0.10.0/24", "10.0.20.0/24"]
   nat_instance_type    = "t4g.nano"
   splunk_instance_type = "t3a.small"
+  enable_auto_stop     = false
+  enable_cribl         = true
 }
 
 # --- Plan succeeds with valid security inputs ---
 
 run "security_plan_succeeds" {
   command = plan
+}
+
+# --- Plan succeeds with Splunk disabled (Cribl-only deployment) ---
+# Exercises the enable_splunk count gating on the Splunk SG, IAM, and SSM
+# parameter for real (module.security is not overridden in this file).
+
+run "splunk_disabled_plan_succeeds" {
+  command = plan
+
+  variables {
+    enable_splunk = false
+  }
+}
+
+# --- Plan succeeds with both workloads disabled (network shell only) ---
+
+run "all_workloads_disabled_plan_succeeds" {
+  command = plan
+
+  variables {
+    enable_splunk = false
+    enable_cribl  = false
+  }
 }
 
 # --- SSH disabled by default (ssh_allowed_cidrs defaults to empty) ---
