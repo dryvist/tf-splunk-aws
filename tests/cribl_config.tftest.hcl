@@ -53,13 +53,12 @@ override_module {
 override_module {
   target = module.splunk
   outputs = {
-    splunk_instance_id     = "i-00000000000000002"
-    splunk_instance_arn    = "arn:aws:ec2:us-east-2:123456789012:instance/i-00000000000000002"
-    splunk_private_ip      = "10.0.10.10"
-    splunk_public_ip       = "203.0.113.20"
-    splunk_web_url         = "http://203.0.113.20:8000"
-    splunk_hec_url         = "http://203.0.113.20:8088"
-    smartstore_volume_path = "remote:smartstore"
+    splunk_instance_id          = "i-00000000000000002"
+    splunk_instance_private_ip  = "10.0.10.10"
+    splunk_instance_public_ip   = "203.0.113.20"
+    splunk_web_url              = "http://203.0.113.20:8000"
+    splunk_cloudwatch_log_group = "/aws/ec2/splunk"
+    splunk_app_log_group        = "/aws/ec2/splunk/app"
   }
 }
 
@@ -78,6 +77,8 @@ override_module {
 
 variables {
   environment           = "test"
+  enable_auto_stop      = false
+  availability_zones    = ["us-east-2a", "us-east-2b"]
   splunk_admin_password = "TestPassword123!"
   enable_cribl          = true
 }

@@ -1,0 +1,8 @@
+# Backend configuration for the stg environment.
+# Replace <ACCOUNT_ID> with your 12-digit AWS account id, then:
+#   tofu init -backend-config=envs/stg.s3.tfbackend
+bucket       = "tf-splunk-aws-state-us-east-2-<ACCOUNT_ID>"
+key          = "tf-splunk-aws/stg/terraform.tfstate"
+region       = "us-east-2"
+encrypt      = true
+use_lockfile = true

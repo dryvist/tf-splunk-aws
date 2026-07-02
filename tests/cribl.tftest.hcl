@@ -71,23 +71,24 @@ variables {
   private_subnet_cidrs = ["10.0.10.0/24", "10.0.20.0/24"]
   nat_instance_type    = "t4g.nano"
   splunk_instance_type = "t3a.small"
+  enable_auto_stop     = false
+  enable_cribl         = true
 }
 
-# --- enable_cribl defaults to true ---
-
-run "cribl_enabled_by_default" {
-  command = plan
-
-  assert {
-    condition     = var.enable_cribl == true
-    error_message = "enable_cribl must default to true"
-  }
-}
-
-# --- Plan succeeds with Cribl enabled (default) ---
+# --- Plan succeeds with Cribl enabled ---
 
 run "cribl_enabled_plan_succeeds" {
   command = plan
+}
+
+# --- Plan succeeds with Splunk disabled, Cribl only ---
+
+run "cribl_only_plan_succeeds" {
+  command = plan
+
+  variables {
+    enable_splunk = false
+  }
 }
 
 # --- Plan succeeds with Cribl disabled ---

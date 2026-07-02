@@ -1,5 +1,4 @@
-# Ignore Terraform provider files and cache directories
+# Generated/vendored files excluded from markdown linting
 CHANGELOG.md
 .terraform/**
-.terragrunt-cache/**
 node_modules/**

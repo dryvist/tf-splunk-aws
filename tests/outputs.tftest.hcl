@@ -85,6 +85,8 @@ variables {
   private_subnet_cidrs = ["10.0.10.0/24", "10.0.20.0/24"]
   nat_instance_type    = "t4g.nano"
   splunk_instance_type = "t3a.small"
+  enable_auto_stop     = false
+  enable_cribl         = true
 }
 
 # --- Plan succeeds and all outputs are produced ---
@@ -93,20 +95,46 @@ run "outputs_plan_succeeds" {
   command = plan
 }
 
-# --- estimated_cost contains daily and monthly breakdowns ---
-# The cost output must contain both daily and monthly estimates for operational awareness.
+# --- estimated_cost is computed from the enabled components ---
+# The cost output must expose monthly/daily totals and a per-component map.
 
-run "estimated_cost_has_daily_and_monthly" {
+run "estimated_cost_has_expected_shape" {
   command = plan
 
   assert {
-    condition     = output.estimated_cost.daily != null
-    error_message = "estimated_cost must contain daily breakdown"
+    condition     = startswith(output.estimated_cost.always_on_monthly, "$")
+    error_message = "estimated_cost.always_on_monthly must be a dollar amount"
   }
 
   assert {
-    condition     = output.estimated_cost.monthly != null
-    error_message = "estimated_cost must contain monthly breakdown"
+    condition     = startswith(output.estimated_cost.daily_running, "$")
+    error_message = "estimated_cost.daily_running must be a dollar amount"
+  }
+
+  assert {
+    condition     = contains(keys(output.estimated_cost.components), "nat")
+    error_message = "estimated_cost.components must always include the NAT instance"
+  }
+
+  assert {
+    condition     = contains(keys(output.estimated_cost.components), "splunk") && contains(keys(output.estimated_cost.components), "cribl_stream")
+    error_message = "estimated_cost.components must include splunk and cribl_stream when both workloads are enabled"
+  }
+}
+
+# --- estimated_cost drops disabled components ---
+
+run "estimated_cost_excludes_disabled_workloads" {
+  command = plan
+
+  variables {
+    enable_splunk = false
+    enable_cribl  = false
+  }
+
+  assert {
+    condition     = !contains(keys(output.estimated_cost.components), "splunk") && !contains(keys(output.estimated_cost.components), "cribl_stream")
+    error_message = "estimated_cost.components must not include disabled workloads"
   }
 }
 

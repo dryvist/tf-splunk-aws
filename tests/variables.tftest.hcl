@@ -32,6 +32,7 @@ variables {
   private_subnet_cidrs = ["10.0.10.0/24", "10.0.20.0/24"]
   nat_instance_type    = "t4g.nano"
   splunk_instance_type = "t3a.small"
+  enable_auto_stop     = false
 }
 
 # --- Positive test: valid default configuration passes plan ---
@@ -144,14 +145,23 @@ run "key_pair_name_defaults_to_null" {
   }
 }
 
-# --- enable_cribl defaults to true ---
+# --- Workload toggles: Splunk on, Cribl off by default ---
 
-run "enable_cribl_defaults_to_true" {
+run "enable_splunk_defaults_to_true" {
   command = plan
 
   assert {
-    condition     = var.enable_cribl == true
-    error_message = "enable_cribl should default to true"
+    condition     = var.enable_splunk == true
+    error_message = "enable_splunk should default to true"
+  }
+}
+
+run "enable_cribl_defaults_to_false" {
+  command = plan
+
+  assert {
+    condition     = var.enable_cribl == false
+    error_message = "enable_cribl should default to false (workloads are opt-in independently)"
   }
 }
 

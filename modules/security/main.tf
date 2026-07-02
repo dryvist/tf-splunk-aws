@@ -1,8 +1,9 @@
-# Security Module - Security Groups and IAM
-# Handles all security-related resources for Splunk AWS deployment
+# Security module — security groups, IAM roles/profiles, and the SSM-stored
+# Splunk admin password. Splunk- and Cribl-specific resources are gated on
+# their respective enable_* toggles.
 
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.6"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -11,46 +12,50 @@ terraform {
   }
 }
 
-# Local values for consistent tagging
 locals {
+  splunk_enabled = var.enable_splunk ? 1 : 0
+  cribl_enabled  = var.enable_cribl ? 1 : 0
+
   common_tags = {
     Environment = var.environment
-    Project     = "splunk-aws"
-    ManagedBy   = "terraform"
+    Project     = var.project_tag
+    ManagedBy   = "opentofu"
   }
 }
 
-# NAT Instance Security Group
+# --- NAT ------------------------------------------------------------------------
+
 resource "aws_security_group" "nat_instance" {
   name        = "${var.environment}-nat-instance-sg"
   description = "Security group for NAT instance"
   vpc_id      = var.vpc_id
 
-  # Allow HTTP outbound
   egress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "HTTP egress (package downloads)"
   }
 
-  # Allow HTTPS outbound
   egress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "HTTPS egress"
   }
 
-  # Allow all traffic from private subnets (for NAT functionality)
+  # NAT function: accept anything the private subnets send outbound.
   ingress {
     from_port   = 0
     to_port     = 65535
     protocol    = "tcp"
     cidr_blocks = var.private_subnet_cidrs
+    description = "Forwarded traffic from private subnets"
   }
 
-  # SSH access (restricted to explicit CIDRs — empty list disables SSH entirely)
+  # SSH rule only exists when explicitly allowlisted; empty list = no SSH.
   dynamic "ingress" {
     for_each = length(var.ssh_allowed_cidrs) > 0 ? [1] : []
     content {
@@ -67,73 +72,74 @@ resource "aws_security_group" "nat_instance" {
   })
 }
 
-# Splunk Security Group
+# --- Splunk ---------------------------------------------------------------------
+
 resource "aws_security_group" "splunk" {
+  count = local.splunk_enabled
+
   name        = "${var.environment}-splunk-sg"
   description = "Security group for Splunk instances"
   vpc_id      = var.vpc_id
 
-  # Splunk Web (8000)
   ingress {
-    from_port   = 8000
-    to_port     = 8000
+    from_port   = var.splunk_web_port
+    to_port     = var.splunk_web_port
     protocol    = "tcp"
     cidr_blocks = var.vpc_cidr_blocks
+    description = "Splunk Web (VPC internal)"
   }
 
-  # Splunk Forwarder (9997)
   ingress {
-    from_port   = 9997
-    to_port     = 9997
+    from_port   = var.splunk_s2s_port
+    to_port     = var.splunk_s2s_port
     protocol    = "tcp"
     cidr_blocks = var.vpc_cidr_blocks
+    description = "Splunk-to-Splunk forwarding (VPC internal)"
   }
 
-  # Splunk Management (8089) — VPC internal
   ingress {
-    from_port   = 8089
-    to_port     = 8089
+    from_port   = var.splunk_management_port
+    to_port     = var.splunk_management_port
     protocol    = "tcp"
     cidr_blocks = var.vpc_cidr_blocks
+    description = "Splunk management API (VPC internal)"
   }
 
-  # Splunk Management (8089) — external restricted access
+  # Management from outside the VPC is always allowlist-only — deliberately
+  # unaffected by allow_all_ips.
   dynamic "ingress" {
     for_each = length(var.management_allowed_cidrs) > 0 ? [1] : []
     content {
-      from_port   = 8089
-      to_port     = 8089
+      from_port   = var.splunk_management_port
+      to_port     = var.splunk_management_port
       protocol    = "tcp"
       cidr_blocks = var.management_allowed_cidrs
-      description = "Splunk mgmt (external, always restricted)"
+      description = "Splunk management API (external, always restricted)"
     }
   }
 
-  # Splunk Web (8000) from external CIDRs - only created when web_allowed_cidrs is non-empty or allow_all_ips
   dynamic "ingress" {
     for_each = var.allow_all_ips || length(var.web_allowed_cidrs) > 0 ? [1] : []
     content {
-      from_port   = 8000
-      to_port     = 8000
+      from_port   = var.splunk_web_port
+      to_port     = var.splunk_web_port
       protocol    = "tcp"
       cidr_blocks = var.allow_all_ips ? ["0.0.0.0/0"] : var.web_allowed_cidrs
       description = "Splunk Web (external access)"
     }
   }
 
-  # Splunk HEC (8088) - only created when hec_allowed_cidrs is non-empty or allow_all_ips
   dynamic "ingress" {
     for_each = var.allow_all_ips || length(var.hec_allowed_cidrs) > 0 ? [1] : []
     content {
-      from_port   = 8088
-      to_port     = 8088
+      from_port   = var.splunk_hec_port
+      to_port     = var.splunk_hec_port
       protocol    = "tcp"
       cidr_blocks = var.allow_all_ips ? ["0.0.0.0/0"] : var.hec_allowed_cidrs
       description = "Splunk HEC (HTTP Event Collector)"
     }
   }
 
-  # SSH access (restricted to explicit CIDRs — empty list disables SSH entirely)
   dynamic "ingress" {
     for_each = length(var.ssh_allowed_cidrs) > 0 ? [1] : []
     content {
@@ -141,16 +147,16 @@ resource "aws_security_group" "splunk" {
       to_port     = 22
       protocol    = "tcp"
       cidr_blocks = var.ssh_allowed_cidrs
-      description = "SSH from allowed CIDRs (when SSH enabled)"
+      description = "SSH access (restricted)"
     }
   }
 
-  # Allow all outbound traffic
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "All egress"
   }
 
   tags = merge(local.common_tags, {
@@ -158,8 +164,12 @@ resource "aws_security_group" "splunk" {
   })
 }
 
-# SSM Parameter Store - Splunk admin password (SecureString)
+# The Splunk admin password never appears in user_data or state-file plaintext
+# paths the instance can read from disk — the instance retrieves it from this
+# SecureString parameter at boot via its IAM role.
 resource "aws_ssm_parameter" "splunk_admin_password" {
+  count = local.splunk_enabled
+
   name        = "/${var.environment}/splunk/admin-password"
   description = "Splunk Enterprise admin password"
   type        = "SecureString"
@@ -170,8 +180,9 @@ resource "aws_ssm_parameter" "splunk_admin_password" {
   })
 }
 
-# IAM Role for Splunk Instance
 resource "aws_iam_role" "splunk_instance" {
+  count = local.splunk_enabled
+
   name = "${var.environment}-splunk-instance-role"
 
   assume_role_policy = jsonencode({
@@ -192,10 +203,12 @@ resource "aws_iam_role" "splunk_instance" {
   })
 }
 
-# IAM Policy for Splunk Instance (basic EC2 and SSM access)
+# SSM Session Manager access plus read access to the admin-password parameter.
 resource "aws_iam_role_policy" "splunk_instance" {
+  count = local.splunk_enabled
+
   name = "${var.environment}-splunk-instance-policy"
-  role = aws_iam_role.splunk_instance.id
+  role = aws_iam_role.splunk_instance[0].id
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -227,7 +240,7 @@ resource "aws_iam_role_policy" "splunk_instance" {
           "ssm:GetParameter",
           "ssm:GetParameters"
         ]
-        Resource = aws_ssm_parameter.splunk_admin_password.arn
+        Resource = aws_ssm_parameter.splunk_admin_password[0].arn
       },
       {
         Effect   = "Allow"
@@ -246,29 +259,34 @@ resource "aws_iam_role_policy" "splunk_instance" {
   })
 }
 
-# IAM Instance Profile for Splunk
 resource "aws_iam_instance_profile" "splunk" {
+  count = local.splunk_enabled
+
   name = "${var.environment}-splunk-instance-profile"
-  role = aws_iam_role.splunk_instance.name
+  role = aws_iam_role.splunk_instance[0].name
 
   tags = merge(local.common_tags, {
     Name = "${var.environment}-splunk-instance-profile"
   })
 }
 
-# Internal Cluster Security Group — self-referencing, all VMs fully open to each other
+# --- Cribl ----------------------------------------------------------------------
+
+# Self-referencing cluster SG: instances that carry it can talk to each other
+# on any port (Splunk <-> Cribl Stream <-> Cribl Edge).
 resource "aws_security_group" "internal" {
-  count = var.enable_cribl ? 1 : 0
+  count = local.cribl_enabled
 
   name        = "${var.environment}-internal-cluster-sg"
   description = "All ports open between Splunk, Cribl Stream, and Cribl Edge instances"
   vpc_id      = var.vpc_id
 
   ingress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
-    self      = true
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    self        = true
+    description = "Intra-cluster traffic"
   }
 
   egress {
@@ -276,6 +294,7 @@ resource "aws_security_group" "internal" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "All egress"
   }
 
   tags = merge(local.common_tags, {
@@ -283,19 +302,17 @@ resource "aws_security_group" "internal" {
   })
 }
 
-# Cribl Security Group — external access to Cribl ports
 resource "aws_security_group" "cribl" {
-  count = var.enable_cribl ? 1 : 0
+  count = local.cribl_enabled
 
   name        = "${var.environment}-cribl-sg"
   description = "Security group for Cribl Stream and Edge instances"
   vpc_id      = var.vpc_id
 
-  # Cribl ports (4200: Web UI + leader/worker comms; 9997: data ingest)
   dynamic "ingress" {
     for_each = var.allow_all_ips || length(var.cribl_allowed_cidrs) > 0 ? {
-      "4200" = "Cribl Web UI and leader/worker comms"
-      "9997" = "Cribl data ingest"
+      (tostring(var.cribl_web_port))  = "Cribl Web UI and leader/worker comms"
+      (tostring(var.cribl_data_port)) = "Cribl data ingest"
     } : {}
     content {
       from_port   = tonumber(ingress.key)
@@ -306,7 +323,8 @@ resource "aws_security_group" "cribl" {
     }
   }
 
-  # RDP (3389) — always restricted to management CIDRs
+  # RDP to the Windows Edge box is always allowlist-only — deliberately
+  # unaffected by allow_all_ips.
   dynamic "ingress" {
     for_each = length(var.management_allowed_cidrs) > 0 ? [1] : []
     content {
@@ -318,7 +336,6 @@ resource "aws_security_group" "cribl" {
     }
   }
 
-  # SSH (22) — same pattern as existing instances
   dynamic "ingress" {
     for_each = length(var.ssh_allowed_cidrs) > 0 ? [1] : []
     content {
@@ -335,6 +352,7 @@ resource "aws_security_group" "cribl" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+    description = "All egress"
   }
 
   tags = merge(local.common_tags, {
@@ -342,9 +360,8 @@ resource "aws_security_group" "cribl" {
   })
 }
 
-# IAM Role for Cribl Instances
 resource "aws_iam_role" "cribl_instance" {
-  count = var.enable_cribl ? 1 : 0
+  count = local.cribl_enabled
 
   name = "${var.environment}-cribl-instance-role"
 
@@ -366,9 +383,10 @@ resource "aws_iam_role" "cribl_instance" {
   })
 }
 
-# IAM Policy for Cribl Instances (SSM management only — no module-managed S3 access)
+# SSM Session Manager access only — Cribl instances get no S3 or other data
+# permissions from this module.
 resource "aws_iam_role_policy" "cribl_instance" {
-  count = var.enable_cribl ? 1 : 0
+  count = local.cribl_enabled
 
   name = "${var.environment}-cribl-instance-policy"
   role = aws_iam_role.cribl_instance[0].id
@@ -406,9 +424,8 @@ resource "aws_iam_role_policy" "cribl_instance" {
   })
 }
 
-# IAM Instance Profile for Cribl
 resource "aws_iam_instance_profile" "cribl" {
-  count = var.enable_cribl ? 1 : 0
+  count = local.cribl_enabled
 
   name = "${var.environment}-cribl-instance-profile"
   role = aws_iam_role.cribl_instance[0].name
