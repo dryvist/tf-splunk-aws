@@ -1,6 +1,6 @@
 # Terraform / OpenTofu Test Suite Standards
 
-Project-internal testing convention for `tofu test` / `terraform test` suites.
+Project-internal testing convention for `tofu test` suites.
 Written so it can be lifted out and shared as a standalone reference for the
 community — nothing in here is repo-specific beyond the examples.
 
@@ -8,7 +8,7 @@ Status: living document. Pin a commit when citing.
 
 ## 1. Why these standards exist
 
-`tofu test` and `terraform test` are powerful but underspecified by upstream.
+`tofu test` is powerful but underspecified by upstream.
 Teams that adopt them without a convention end up with one of three failure modes:
 
 1. **Order-dependent failures.** A test passes in isolation, fails in the full
@@ -22,7 +22,7 @@ This document encodes the patterns that prevent each.
 
 ## 2. Scope
 
-Applies to any repository that runs `tofu test` or `terraform test`. Examples
+Applies to any repository that runs `tofu test`. Examples
 use OpenTofu syntax; everything carries to HashiCorp Terraform unmodified.
 
 Out of scope:
@@ -46,7 +46,7 @@ modules/
 
 Rules:
 
-- Test files live in `modules/tests/`, never inside individual submodules. The
+- Test files live in `tests/`, never inside individual submodules. The
   root module is the test subject; submodules are overridden.
 - One file per logical subject. Filename matches what the file tests
   (`network.tftest.hcl`, `security.tftest.hcl`, `cribl_config.tftest.hcl`).
@@ -223,14 +223,14 @@ Add this to pre-commit or CI:
 tofu test -no-color
 
 # Each file must also pass in isolation. Detects override_module leakage.
-for f in modules/tests/*.tftest.hcl; do
+for f in tests/*.tftest.hcl; do
   tofu test -filter="$f" -no-color || exit 1
 done
 
 # Mock-provider drift check: every file's mock_provider name+alias set must
 # match.
-first=$(ls modules/tests/*.tftest.hcl | head -1)
-diff <(grep -h 'mock_provider' modules/tests/*.tftest.hcl | sort -u) \
+first=$(ls tests/*.tftest.hcl | head -1)
+diff <(grep -h 'mock_provider' tests/*.tftest.hcl | sort -u) \
      <(grep -h 'mock_provider' "$first" | sort -u) \
   || { echo "mock_provider lists drift across test files"; exit 1; }
 ```
@@ -293,7 +293,7 @@ assert {
 
 `tofu test` cannot directly assert that a variable is `sensitive = true` — it
 can only assert default values and behavior. Document sensitivity in the
-variable's description and rely on `terraform validate` to enforce the flag.
+variable's description and rely on `tofu validate` to enforce the flag.
 
 ## 10. Variable injection
 
@@ -349,7 +349,7 @@ Document these explicitly so contributors don't waste cycles fighting the tool:
 
 For a new repository or an existing one without these standards:
 
-- [ ] All test files in `modules/tests/` (or equivalent canonical path)
+- [ ] All test files in `tests/` (or equivalent canonical path)
 - [ ] Header comment block in each file naming the subject and any deliberate
       non-overrides
 - [ ] Every file mocks every required provider (and every alias) — same list
@@ -363,7 +363,7 @@ For a new repository or an existing one without these standards:
 
 ## 14. Reference implementation
 
-This document was extracted from `tf-splunk-aws/modules/tests/`. See:
+This document was extracted from `tf-splunk-aws/tests/`. See:
 
 - `tests/cribl.tftest.hcl` — subject `module.cribl`, overrides every other
   module.

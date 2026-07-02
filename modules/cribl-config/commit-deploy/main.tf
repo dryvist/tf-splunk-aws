@@ -8,7 +8,7 @@
 # No local-exec, no shell, no inline script — pure HCL.
 
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.6"
   required_providers {
     criblio = {
       source  = "criblio/criblio"
