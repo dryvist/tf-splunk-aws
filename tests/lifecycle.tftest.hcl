@@ -7,6 +7,7 @@
 mock_provider "aws" {}
 mock_provider "random" {}
 mock_provider "tls" {}
+mock_provider "archive" {}
 mock_provider "http" {
   mock_data "http" {
     defaults = {
@@ -75,13 +76,15 @@ override_module {
 }
 
 # Override the lifecycle module so the root plan resolves without evaluating its
-# scheduler resource: the mock AWS provider yields a non-ARN string that the
+# scheduler resources: the mock AWS provider yields a non-ARN string that the
 # aws_scheduler_schedule "role_arn" attribute rejects at plan time. Consistent with
-# the other child-module overrides above; the real role ARN is produced at apply.
+# the other child-module overrides above; the real role ARNs are produced at apply.
 override_module {
   target = module.lifecycle
   outputs = {
-    auto_stop_schedule_name = "dev-splunk-auto-stop"
+    uptime_sweep_function_name   = "dev-splunk-aws-uptime-sweep"
+    uptime_sweep_schedule_name   = "dev-splunk-aws-uptime-sweep"
+    scheduled_stop_schedule_name = null
   }
 }
 
@@ -96,14 +99,32 @@ variables {
   splunk_instance_type = "t3a.small"
 }
 
-# --- enable_auto_stop defaults to false ---
+# --- Guardrail defaults: uptime sweep on, fixed schedule off ---
 
-run "auto_stop_disabled_by_default" {
+run "auto_stop_enabled_by_default" {
   command = plan
 
   assert {
-    condition     = var.enable_auto_stop == false
-    error_message = "enable_auto_stop must default to false"
+    condition     = var.enable_auto_stop == true
+    error_message = "enable_auto_stop must default to true — the uptime sweep is the primary cost control"
+  }
+}
+
+run "max_runtime_hours_defaults_to_24" {
+  command = plan
+
+  assert {
+    condition     = var.max_runtime_hours == 24
+    error_message = "max_runtime_hours must default to 24, got ${var.max_runtime_hours}"
+  }
+}
+
+run "scheduled_stop_disabled_by_default" {
+  command = plan
+
+  assert {
+    condition     = var.enable_scheduled_stop == false
+    error_message = "enable_scheduled_stop must default to false — the uptime sweep is usually sufficient"
   }
 }
 
@@ -118,33 +139,35 @@ run "stop_schedule_expression_default" {
   }
 }
 
-# --- Plan succeeds with auto-stop disabled (default) ---
+# --- Plan succeeds with all guardrails disabled ---
 
 run "auto_stop_disabled_plan_succeeds" {
   command = plan
 
   variables {
-    enable_auto_stop = false
+    enable_auto_stop      = false
+    enable_scheduled_stop = false
   }
 }
 
-# --- Plan succeeds with auto-stop enabled ---
+# --- Plan succeeds with the uptime sweep enabled (default) ---
 
 run "auto_stop_enabled_plan_succeeds" {
   command = plan
 
   variables {
-    enable_auto_stop = true
+    enable_auto_stop  = true
+    max_runtime_hours = 48
   }
 }
 
-# --- Plan succeeds with a custom schedule expression ---
+# --- Plan succeeds with the fixed-schedule stop enabled ---
 
-run "custom_stop_schedule_expression_plan_succeeds" {
+run "scheduled_stop_plan_succeeds" {
   command = plan
 
   variables {
-    enable_auto_stop         = true
+    enable_scheduled_stop    = true
     stop_schedule_expression = "rate(48 hours)"
   }
 }

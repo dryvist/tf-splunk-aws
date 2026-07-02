@@ -8,12 +8,12 @@
 #   3. mock_provider name+alias set is consistent across every test file.
 #      Detects mock drift.
 #
-# Run from the repo root or any subdirectory; the script resolves modules/.
+# Run from the repo root or any subdirectory; the script resolves tests/.
 
 set -euo pipefail
 
 repo_root="$(git rev-parse --show-toplevel)"
-tests_dir="${repo_root}/modules/tests"
+tests_dir="${repo_root}/tests"
 
 if [ ! -d "$tests_dir" ]; then
   echo "no tests dir at $tests_dir" >&2
@@ -29,7 +29,7 @@ if [ "${#test_files[@]}" -eq 0 ]; then
   exit 1
 fi
 
-cd "${repo_root}/modules"
+cd "${repo_root}"
 
 echo ">>> Check 1: full suite"
 tofu test -no-color
@@ -41,7 +41,7 @@ echo ">>> Check 2: per-file isolation"
 exclude_files=()
 isolation_failures=()
 for f in "${test_files[@]}"; do
-  rel="${f#${repo_root}/modules/}"
+  rel="${f#"${repo_root}"/}"
   skip=0
   for x in "${exclude_files[@]}"; do
     [ "$rel" = "$x" ] && skip=1 && break

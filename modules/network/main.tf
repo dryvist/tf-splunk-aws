@@ -1,11 +1,22 @@
-# Network Module - VPC, Subnets, and Routing Infrastructure
-# Provides foundational networking for Splunk AWS deployment
+# Network module — VPC, public/private subnets across two AZs, internet
+# gateway, and route tables. The private route table's default route to the
+# NAT instance is added by the root module (it owns the NAT wiring).
+
+terraform {
+  required_version = ">= 1.6"
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+  }
+}
 
 locals {
   common_tags = {
     Environment = var.environment
-    Project     = "splunk-aws"
-    ManagedBy   = "terraform"
+    Project     = var.project_tag
+    ManagedBy   = "opentofu"
     Module      = "network"
   }
 }

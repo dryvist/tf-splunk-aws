@@ -1,8 +1,14 @@
-# Network Module Variables
+# Network module variables.
 
 variable "environment" {
-  description = "Environment name (dev/stg/prod)"
+  description = "Environment name used to namespace resources."
   type        = string
+}
+
+variable "project_tag" {
+  description = "Value of the Project tag applied to every resource."
+  type        = string
+  default     = "splunk-aws"
 }
 
 variable "vpc_cidr" {

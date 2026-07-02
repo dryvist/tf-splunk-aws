@@ -10,6 +10,7 @@
 mock_provider "aws" {}
 mock_provider "random" {}
 mock_provider "tls" {}
+mock_provider "archive" {}
 mock_provider "http" {
   mock_data "http" {
     defaults = {
@@ -86,6 +87,7 @@ variables {
   private_subnet_cidrs = ["10.0.10.0/24", "10.0.20.0/24"]
   nat_instance_type    = "t4g.nano"
   splunk_instance_type = "t3a.small"
+  enable_auto_stop     = false
 }
 
 # --- splunk_public_access defaults to false ---

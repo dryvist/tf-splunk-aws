@@ -158,3 +158,4 @@ GEMINI.local.md
 AGENTS.local.md
 .aider*
 .specstory/
+modules/lifecycle/lambda/*.zip

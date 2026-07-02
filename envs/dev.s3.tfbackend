@@ -1,0 +1,9 @@
+# Backend configuration for the dev environment.
+# Replace <ACCOUNT_ID> with your 12-digit AWS account id, then:
+#   tofu init -backend-config=envs/dev.s3.tfbackend
+# Bucket creation is a one-time step — see README.md "First-time AWS setup".
+bucket       = "tf-splunk-aws-state-us-east-2-<ACCOUNT_ID>"
+key          = "tf-splunk-aws/dev/terraform.tfstate"
+region       = "us-east-2"
+encrypt      = true
+use_lockfile = true

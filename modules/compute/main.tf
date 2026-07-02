@@ -1,8 +1,9 @@
-# Compute Module - NAT Instance and Basic Compute Resources
-# Handles cost-optimized NAT instance and basic compute infrastructure
+# Compute module — the NAT instance. A t4g.nano NAT instance replaces a
+# managed NAT Gateway (~$32/mo) at a fraction of the cost, at the price of a
+# single point of egress for the private subnets.
 
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.6"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -11,12 +12,11 @@ terraform {
   }
 }
 
-# Local values for consistent tagging
 locals {
   common_tags = {
     Environment = var.environment
-    Project     = "splunk-aws"
-    ManagedBy   = "terraform"
+    Project     = var.project_tag
+    ManagedBy   = "opentofu"
   }
 }
 
