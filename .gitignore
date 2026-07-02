@@ -1,13 +1,12 @@
-# Terraform files
+# --- OpenTofu ----------------------------------------------------------------
 .terraform/
-# Lambda build artifacts (generated at plan time by data.archive_file)
-**/.build/
+**/.terraform/*
 *.tfstate
 *.tfstate.*
+*.tfstate.backup
+*.tfplan
 crash.log
 crash.*.log
-*.tfvars
-*.tfvars.json
 override.tf
 override.tf.json
 *_override.tf
@@ -16,98 +15,49 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# Terragrunt files
-.terragrunt-cache/
-*.terragrunt-cache/
-backend.tf
-provider_override.tf
-terragrunt-debug.log
-terragrunt-debug.tfvars.json
+# tfvars can carry secrets — ignored by default. The committed per-environment
+# files under envs/ are the deliberate exception: they hold only non-secret
+# defaults (secrets come from TF_VAR_* environment variables).
+*.tfvars
+*.tfvars.json
+!envs/*.tfvars
+!*.tfvars.example
 
-# SSH keys and certificates
+# Lambda build artifacts (generated at plan time by data.archive_file)
+modules/lifecycle/lambda/*.zip
+**/.build/
+
+# --- Secrets & credentials -----------------------------------------------------
 *.pem
 *.key
 *_rsa*
 *_dsa*
 *_ecdsa*
 *_ed25519*
-*.crt
-*.p12
-*.pfx
-
-# AWS credentials and config
-.aws/
-aws-credentials
-*.aws
-
-# Environment files
-.env
-.env.*
-!.env.example
-
-# Doppler configuration (contains project/config names)
-.doppler.yaml
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-Thumbs.db
-
-# OS specific files
-*.log
-*.tmp
-*.temp
-.cache/
-
-# Backup files
-*.bak
-*.backup
-*.orig
-
-# Local development files
-local/
-temp/
-tmp/
-.local/
-
-# Local context files with sensitive data (never commit)
-*_LOCAL.md
-*.local.*
-
-# direnv cache (nix-direnv)
-.direnv/
-
-# ai-workflows runtime checkout (checked out by CI into .ai-workflows/ at runtime)
-.ai-workflows/
-
-# ---------------------------------------------------------------------
-# dryvist org-default: secrets, credentials & AI-assistant local state
-# Source of truth: dryvist/.github -> configs/gitignore (PR #43).
-# Carve-outs intentionally absent (committed by convention): .envrc,
-# *.sops.*, .terraform.lock.hcl
-# ---------------------------------------------------------------------
-
-# Environment files (committed examples kept via negation)
-.env.local
-.env.*.local
-!.env.*.example
-
-# Private keys & certificates
-*.ppk
 id_rsa
 id_rsa*
 id_ed25519
 id_ed25519*
-
-# SOPS / age private keys (*.sops.* ciphertext stays committed)
+*.ppk
+*.crt
+*.p12
+*.pfx
 *.age
 keys.txt
-
-# Ansible Vault
+.aws/
+aws-credentials
+*.aws
+.azure/
+gcloud-credentials.json
+kubeconfig
+*.kubeconfig
+secrets.yml
+secrets.yaml
+*.secrets.yml
+*.secrets.yaml
+secrets.dec.yaml
+secrets.plain.yaml
+*credentials*
 *.vault
 vault.yml
 vault.yaml
@@ -116,41 +66,39 @@ vault.yaml
 .vault-pass*
 .vault-password*
 
-# Generic secret material
-secrets.yml
-secrets.yaml
-*.secrets.yml
-*.secrets.yaml
-secrets.dec.yaml
-secrets.plain.yaml
-*credentials*
-SECRETS_SETUP.md
+# --- Environment files ---------------------------------------------------------
+.env
+.env.*
+!.env.example
+!.env.*.example
 
-# Cloud provider credentials
-.azure/
-gcloud-credentials.json
-kubeconfig
-*.kubeconfig
+# --- IDE / OS ------------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.temp
+.cache/
+*.bak
+*.backup
+*.orig
 
-# Doppler secrets fallback cache (encrypted snapshot of the WHOLE config) + setup
-doppler.json
-.doppler/
+# --- Local development ----------------------------------------------------------
+local/
+temp/
+tmp/
+.local/
+*_LOCAL.md
+*.local.*
+.direnv/
 
-# Terraform / OpenTofu state & tfvars are secret-bearing
-**/.terraform/*
-*.tfstate.backup
-*.tfplan
-!*.tfvars.example
-
-# AI assistant machine-local state (committed .claude/settings.json, rules, CLAUDE.md stay)
-.claude/settings.local.json
-.claude/.credentials.json
-.claude/projects/
-.claude/shell-snapshots/
-.claude/statsig/
-.claude/todos/
-.claude/local/
-.claude/worktrees/
+# --- AI assistant machine-local state -------------------------------------------
+.claude/
 .claude-wt/
 CLAUDE.local.md
 .CLAUDE.local.md
@@ -158,4 +106,3 @@ GEMINI.local.md
 AGENTS.local.md
 .aider*
 .specstory/
-modules/lifecycle/lambda/*.zip
