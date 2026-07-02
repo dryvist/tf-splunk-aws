@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/dryvist/tf-splunk-aws/compare/v1.0.1...v1.0.2) (2026-07-02)
+
+
+### Bug Fixes
+
+* point callers at renamed cc- reusable workflows ([e278ce2](https://github.com/dryvist/tf-splunk-aws/commit/e278ce2d4072041d2443af2b6b9a325ea002cd61))
+
 ## [1.0.1](https://github.com/dryvist/tf-splunk-aws/compare/v1.0.0...v1.0.1) (2026-06-22)
 
 
