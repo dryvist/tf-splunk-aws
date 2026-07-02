@@ -12,5 +12,5 @@ permissions:
 
 jobs:
   simplify:
-    uses: dryvist/ai-workflows/.github/workflows/code-simplifier.yml@v0.16
+    uses: dryvist/ai-workflows/.github/workflows/cc-code-simplifier.yml@v0.16
     secrets: inherit
