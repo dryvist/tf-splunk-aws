@@ -9,8 +9,8 @@ This repo provisions a cost-optimized AWS environment for on-demand Splunk
 and/or Cribl workloads. Key constraints:
 
 - Data flows **INTO** AWS only (never out — egress costs)
-- Nothing needs 24/7 uptime; the environment is summoned on demand and stops
-  itself after `max_runtime_hours` (default 24)
+- Nothing needs 24/7 uptime; the environment is summoned on demand and a
+  scheduled stop turns it off again (default nightly, caps runtime under 24h)
 - Cost sensitivity is paramount
 - Splunk and Cribl are independently optional (`enable_splunk`,
   `enable_cribl`)
@@ -25,8 +25,8 @@ ROOT MODULE (repo root)
   modules/splunk     -> Splunk Enterprise (t3a.small x86, optional)
   modules/cribl      -> Cribl Stream (Linux) + Cribl Edge (Windows) (optional)
   modules/cribl-config -> Declarative Cribl objects (criblio provider, optional)
-  modules/lifecycle  -> Auto-stop guardrails (hourly uptime sweep Lambda
-                        + optional fixed schedule)
+  modules/lifecycle  -> Scheduled stop of Project-tagged instances via the
+                        AWS-StopEC2Instance runbook (EventBridge Scheduler)
   modules/summon     -> GitHub Actions OIDC role for credential-less
                         start/stop
 
@@ -53,7 +53,6 @@ tofu fmt -check -recursive
 tofu init -backend=false
 tofu validate
 tofu test -no-color
-bash scripts/tofu-test-isolation-check.sh
 ```
 
 Real plans/applies use the standard AWS credential chain plus a var file:
@@ -96,10 +95,8 @@ curl -sf -o /dev/null -w '%{http_code}' http://<cribl_ip>:4200    # expect 200/3
 
 ## Testing
 
-Tests use mock providers — no AWS credentials needed. Conventions live in
-[docs/terraform-testing-standards.md](docs/terraform-testing-standards.md);
-the isolation script enforces per-file isolation and mock-provider
-consistency across all files in `tests/`.
+Tests use mock providers — no AWS credentials needed. Run the whole suite with
+`tofu test`. Test files live in `tests/` (one `*.tftest.hcl` per concern).
 
 ## Version management
 

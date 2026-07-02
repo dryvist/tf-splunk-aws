@@ -4,14 +4,10 @@
 # The .github/workflows/summon.yml workflow authenticates to AWS via GitHub
 # Actions OIDC and assumes the role created here. The role can only:
 #   * start/stop instances carrying the Project tag,
-#   * describe instances (to report IPs in the job summary),
-#   * create/delete one-time "stop lease" schedules named
-#     <environment>-<project_tag>-lease-*, passing only the lease scheduler
-#     role created here.
+#   * describe instances (to report IPs in the job summary).
 #
-# The lease gives a summoned environment a predictable stop time; the
-# lifecycle module's uptime sweep remains the backstop for anything started
-# outside the workflow.
+# The lifecycle module's scheduled stop turns the environment off again on its
+# schedule, regardless of how it was started.
 
 terraform {
   required_version = ">= 1.6"
@@ -21,10 +17,6 @@ terraform {
       version = "~> 6.0"
     }
   }
-}
-
-data "aws_caller_identity" "current" {
-  count = local.enabled
 }
 
 data "aws_partition" "current" {
@@ -39,8 +31,6 @@ locals {
     Project     = var.project_tag
     ManagedBy   = "opentofu"
   }
-
-  lease_name_prefix = "${var.environment}-${var.project_tag}-lease"
 
   # Reuse an existing OIDC provider when given; otherwise create one below.
   # Null when the module is disabled (nothing references it then).
@@ -107,80 +97,6 @@ resource "aws_iam_role_policy" "summon" {
         Sid      = "StartStopProjectInstances"
         Effect   = "Allow"
         Action   = ["ec2:StartInstances", "ec2:StopInstances"]
-        Resource = "arn:${data.aws_partition.current[0].partition}:ec2:*:*:instance/*"
-        Condition = {
-          StringEquals = { "aws:ResourceTag/Project" = var.project_tag }
-        }
-      },
-      {
-        # Manage only the one-time stop-lease schedules the workflow creates.
-        Sid    = "ManageStopLeases"
-        Effect = "Allow"
-        Action = [
-          "scheduler:CreateSchedule",
-          "scheduler:DeleteSchedule",
-          "scheduler:GetSchedule",
-          "scheduler:UpdateSchedule"
-        ]
-        Resource = "arn:${data.aws_partition.current[0].partition}:scheduler:*:${data.aws_caller_identity.current[0].account_id}:schedule/default/${local.lease_name_prefix}-*"
-      },
-      {
-        Sid      = "PassLeaseSchedulerRole"
-        Effect   = "Allow"
-        Action   = ["iam:PassRole"]
-        Resource = aws_iam_role.lease_scheduler[0].arn
-        Condition = {
-          StringEquals = { "iam:PassedToService" = "scheduler.amazonaws.com" }
-        }
-      },
-    ]
-  })
-}
-
-# Execution role for the one-time stop-lease schedules. The lease invokes the
-# AWS-owned AWS-StopEC2Instance runbook without an AutomationAssumeRole, so
-# this role carries both the automation-start and ec2-stop permissions
-# (mirrors the lifecycle module's scheduled-stop role).
-resource "aws_iam_role" "lease_scheduler" {
-  count = local.enabled
-  name  = "${var.environment}-${var.project_tag}-lease-scheduler"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = { Service = "scheduler.amazonaws.com" }
-      Action    = "sts:AssumeRole"
-    }]
-  })
-
-  tags = local.common_tags
-}
-
-resource "aws_iam_role_policy" "lease_scheduler" {
-  count = local.enabled
-  name  = "${var.environment}-${var.project_tag}-lease-scheduler"
-  role  = aws_iam_role.lease_scheduler[0].id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid      = "StartStopAutomation"
-        Effect   = "Allow"
-        Action   = ["ssm:StartAutomationExecution"]
-        Resource = "arn:${data.aws_partition.current[0].partition}:ssm:*:*:automation-definition/AWS-StopEC2Instance:*"
-      },
-      {
-        Sid      = "DescribeInstances"
-        Effect   = "Allow"
-        Action   = ["ec2:DescribeInstances", "ec2:DescribeInstanceStatus"]
-        Resource = "*"
-      },
-      {
-        Sid      = "StopProjectInstances"
-        Effect   = "Allow"
-        Action   = ["ec2:StopInstances"]
         Resource = "arn:${data.aws_partition.current[0].partition}:ec2:*:*:instance/*"
         Condition = {
           StringEquals = { "aws:ResourceTag/Project" = var.project_tag }

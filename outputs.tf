@@ -129,11 +129,6 @@ output "summon_role_arn" {
   value       = module.summon.summon_role_arn
 }
 
-output "summon_scheduler_role_arn" {
-  description = "ARN of the scheduler role used by summon-created stop leases (null when disabled). Set this as the SUMMON_SCHEDULER_ROLE_ARN repository variable."
-  value       = module.summon.scheduler_role_arn
-}
-
 # --- Cost estimate --------------------------------------------------------------
 # On-demand us-east-2 pricing, computed from the enabled components. EBS is
 # billed while instances are stopped; compute is not, which is why the

@@ -7,7 +7,6 @@
 mock_provider "aws" {}
 mock_provider "random" {}
 mock_provider "tls" {}
-mock_provider "archive" {}
 mock_provider "http" {
   mock_data "http" {
     defaults = {

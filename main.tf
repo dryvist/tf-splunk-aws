@@ -6,7 +6,7 @@
 #   compute   NAT instance (shared egress path for private subnets)
 #   splunk    Splunk Enterprise instance + EBS data volume (optional)
 #   cribl     Cribl Stream (Linux) + Cribl Edge (Windows) instances (optional)
-#   lifecycle Auto-stop guardrails (uptime sweep + optional fixed schedule)
+#   lifecycle Scheduled stop of Project-tagged instances (AWS-StopEC2Instance)
 #   summon    GitHub Actions OIDC role for credential-less start/stop
 #
 # Splunk and Cribl are independently optional (enable_splunk / enable_cribl);
@@ -74,7 +74,7 @@ locals {
 
 # --- AMI selection ------------------------------------------------------------
 # Each lookup can be bypassed with an explicit *_ami_id variable, e.g. to pin
-# images for change control or to use hardened corporate AMIs.
+# images for change control or to use hardened base AMIs.
 
 # ARM64 Amazon Linux 2 for the NAT instance (Graviton is the cheapest class
 # that can push NAT traffic for this workload).
@@ -238,17 +238,14 @@ module "cribl" {
   cribl_web_port              = var.cribl_web_port
 }
 
-# Cost guardrails: an hourly uptime sweep stops any Project-tagged instance
-# that has been running longer than max_runtime_hours, and an optional fixed
-# schedule can additionally stop the whole stack at a set time.
+# Cost guardrail: a scheduled stop of every Project-tagged instance via the
+# AWS-StopEC2Instance runbook. A daily schedule caps runtime at under 24 hours.
 module "lifecycle" {
   source = "./modules/lifecycle"
 
   environment              = var.environment
   project_tag              = var.project_tag
   enable_auto_stop         = var.enable_auto_stop
-  max_runtime_hours        = var.max_runtime_hours
-  enable_scheduled_stop    = var.enable_scheduled_stop
   stop_schedule_expression = var.stop_schedule_expression
 }
 

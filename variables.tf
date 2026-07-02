@@ -44,30 +44,13 @@ variable "enable_cribl" {
 }
 
 variable "enable_auto_stop" {
-  description = "Deploy the auto-stop guardrail: an hourly sweep stops any Project-tagged instance running longer than max_runtime_hours. Strongly recommended — this is the primary cost control."
+  description = "Stop every Project-tagged instance on stop_schedule_expression via the AWS-StopEC2Instance runbook. On by default — this is the primary cost control. A daily schedule caps runtime at under 24 hours."
   type        = bool
   default     = true
 }
 
-variable "max_runtime_hours" {
-  description = "Maximum continuous uptime (hours) before the auto-stop sweep stops an instance. Applies to every instance carrying the Project tag, however it was started."
-  type        = number
-  default     = 24
-
-  validation {
-    condition     = var.max_runtime_hours >= 1 && var.max_runtime_hours <= 168
-    error_message = "max_runtime_hours must be between 1 and 168 (one week)."
-  }
-}
-
-variable "enable_scheduled_stop" {
-  description = "Additionally stop the whole stack on a fixed schedule (stop_schedule_expression), independent of uptime. Off by default; the uptime sweep is usually sufficient."
-  type        = bool
-  default     = false
-}
-
 variable "stop_schedule_expression" {
-  description = "EventBridge Scheduler expression for the fixed-schedule stop (requires enable_scheduled_stop). Default nightly 08:00 UTC."
+  description = "EventBridge Scheduler expression for the scheduled stop. Default nightly 08:00 UTC."
   type        = string
   default     = "cron(0 8 * * ? *)"
 
@@ -299,7 +282,7 @@ variable "splunk_public_access" {
 
 # --- AMI overrides ------------------------------------------------------------
 # Leave null to use the latest matching Amazon-owned AMI; set to pin an image
-# or substitute a hardened corporate AMI.
+# or substitute a hardened base AMI.
 
 variable "nat_ami_id" {
   description = "Override AMI for the NAT instance (arm64 Amazon Linux expected)."

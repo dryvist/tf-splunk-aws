@@ -11,34 +11,30 @@ With `enable_github_summon = true` applied and the repository variables wired
 repository can start or stop the stack:
 
 1. GitHub → **Actions → Summon environment → Run workflow**
-2. Choose `action: start` (with an optional `lease_hours`, default 24) or
-   `action: stop`
+2. Choose `action: start` or `action: stop`
 3. The job summary shows every instance's state and IPs when it finishes
 
 Equivalent CLI and chat triggers:
 
 ```bash
-gh workflow run summon.yml -f action=start -f lease_hours=24
+gh workflow run summon.yml -f action=start
 gh workflow run summon.yml -f action=stop
 ```
 
 Slack users with the [GitHub app for Slack](https://github.com/integrations/slack)
 can trigger the same workflow with `/github run <owner>/<repo> summon.yml`.
 
-On `start`, the workflow:
+On `start`, the workflow starts the NAT instance first (private-subnet
+instances need their egress path up before they boot), then the workload
+instances.
 
-- starts the NAT instance first (private-subnet instances need their egress
-  path up before they boot), then the workload instances;
-- creates a **one-time, self-deleting stop lease** that stops the whole stack
-  after `lease_hours`.
-
-## Automatic shutdown guarantees
+## Automatic shutdown
 
 Independent of how instances were started, the lifecycle module (default
-`enable_auto_stop = true`) runs an hourly sweep that stops any
-`Project`-tagged instance whose uptime exceeds `max_runtime_hours`
-(default 24). Console or CLI starts are covered too — there is no way to
-leave the stack running indefinitely by accident.
+`enable_auto_stop = true`) runs the AWS-StopEC2Instance runbook on
+`stop_schedule_expression` (default nightly 08:00 UTC), stopping every
+`Project`-tagged instance. Console or CLI starts are covered too — a daily
+schedule caps runtime at under 24 hours.
 
 There is no auto-*start*: the stack stays off until deliberately summoned.
 

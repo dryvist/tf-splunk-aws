@@ -13,11 +13,10 @@ enable_cribl  = true
 # Dev is operated over the internet: public IPs + allowlisted access.
 splunk_public_access = true
 
-# Cost guardrail: stop anything running longer than 24h (hourly sweep).
-enable_auto_stop  = true
-max_runtime_hours = 24
+# Cost guardrail: stop every Project-tagged instance nightly.
+enable_auto_stop = true
 
-# Credential-less start/stop from the Actions tab. Set the repository slug
-# after the corporate transfer, then flip this on.
+# Credential-less start/stop from the Actions tab. Set the repository slug,
+# then flip this on.
 enable_github_summon = false
 # github_repository  = "<owner>/tf-splunk-aws"

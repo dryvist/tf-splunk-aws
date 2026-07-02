@@ -3,15 +3,13 @@
 # role created by modules/summon (enable_github_summon = true).
 #
 # Required repository Actions variables (from `tofu output` after apply):
-#   SUMMON_ROLE_ARN            — module output summon_role_arn
-#   SUMMON_SCHEDULER_ROLE_ARN  — module output summon_scheduler_role_arn
+#   SUMMON_ROLE_ARN  — module output summon_role_arn
 # Optional repository Actions variables:
 #   AWS_REGION   (default us-east-2)
 #   PROJECT_TAG  (default splunk-aws)
 #
-# On start, a one-time self-deleting EventBridge schedule stops the stack
-# after the requested lease. The hourly uptime sweep (modules/lifecycle)
-# remains the backstop either way.
+# The scheduled stop (modules/lifecycle) stops the stack on its schedule
+# regardless of how it was started.
 
 name: Summon environment
 
@@ -26,11 +24,6 @@ on:
         options:
           - start
           - stop
-      lease_hours:
-        description: Hours until the automatic stop lease fires (start only)
-        type: number
-        required: false
-        default: 24
 
 permissions:
   id-token: write
@@ -79,32 +72,6 @@ jobs:
           if [ -z "$nat_ids" ] && [ -z "$other_ids" ]; then
             echo "No stopped Project=${PROJECT_TAG} instances found." | tee -a "$GITHUB_STEP_SUMMARY"
           fi
-
-      - name: Create stop lease
-        if: inputs.action == 'start'
-        env:
-          LEASE_HOURS: ${{ inputs.lease_hours }}
-          ENVIRONMENT_NAME: ${{ vars.ENVIRONMENT_NAME || 'dev' }}
-          SCHEDULER_ROLE_ARN: ${{ vars.SUMMON_SCHEDULER_ROLE_ARN }}
-        run: |
-          set -euo pipefail
-          [[ "$LEASE_HOURS" =~ ^[0-9]+$ ]] || { echo "lease_hours must be a positive integer" >&2; exit 1; }
-          STOP_AT=$(date -u -d "+${LEASE_HOURS} hours" +%Y-%m-%dT%H:%M:%S)
-          NAME="${ENVIRONMENT_NAME}-${PROJECT_TAG}-lease-${{ github.run_id }}"
-
-          TARGET=$(jq -n --arg role "$SCHEDULER_ROLE_ARN" --arg project "$PROJECT_TAG" '{
-            Arn: "arn:aws:scheduler:::aws-sdk:ssm:startAutomationExecution",
-            RoleArn: $role,
-            Input: ({DocumentName: "AWS-StopEC2Instance", TargetParameterName: "InstanceId",
-                     Targets: [{Key: "tag:Project", Values: [$project]}]} | tojson)
-          }')
-          aws scheduler create-schedule \
-            --name "$NAME" \
-            --schedule-expression "at(${STOP_AT})" \
-            --flexible-time-window Mode=OFF \
-            --action-after-completion DELETE \
-            --target "$TARGET"
-          echo "Stop lease **${NAME}** fires at **${STOP_AT} UTC** (${LEASE_HOURS}h)." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Stop environment
         if: inputs.action == 'stop'

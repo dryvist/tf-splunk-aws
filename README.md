@@ -34,25 +34,19 @@ for the live computed figure):
 | Splunk (t3a.small + 70 GB gp3) | ~$19.32/mo | ~$5.60/mo (EBS) |
 | Cribl Stream (t3a.small) | ~$16.12/mo | ~$2.40/mo (EBS) |
 | Cribl Edge (t3a.medium, Windows) | ~$56.71/mo | ~$2.40/mo (EBS) |
-| Auto-stop Lambda + schedules | ~$0 (free tier) | ~$0 |
+| Auto-stop schedule | ~$0 (free tier) | ~$0 |
 
-With the default guardrails, instances run at most 24 hours per summon, so
+With the default guardrail, a daily stop caps runtime at under 24 hours, so
 real spend approaches the "stopped" column plus hours actually used.
 
 ### Automatic shutdown (default on)
 
-Two tag-driven mechanisms in `modules/lifecycle`:
-
-1. **Uptime sweep** — an hourly EventBridge Scheduler → Lambda sweep stops any
-   `Project`-tagged instance whose uptime exceeds `max_runtime_hours`
-   (default 24). Uptime is measured from `LaunchTime`, which resets on every
-   start, so this is a true "24 hours after it was started" limit no matter
-   how the instance was started.
-2. **Stop lease** — when the environment is summoned via GitHub Actions, the
-   workflow also creates a one-time, self-deleting EventBridge schedule that
-   stops the stack after the requested lease (default 24 h).
-
-An optional fixed nightly stop (`enable_scheduled_stop`) is available as well.
+`modules/lifecycle` provisions an EventBridge Scheduler that invokes AWS's
+built-in `AWS-StopEC2Instance` SSM runbook on `stop_schedule_expression`
+(default `cron(0 8 * * ? *)` — nightly 08:00 UTC), stopping every instance
+tagged `Project=splunk-aws`. It is tag-driven and fully AWS-native (no code),
+so it catches every instance regardless of how it was started. A daily
+schedule caps maximum runtime at under 24 hours.
 
 ## Installation
 
@@ -150,12 +144,6 @@ permission set) or an IAM user.
       "Resource": "arn:aws:scheduler:*:<ACCOUNT_ID>:schedule/default/*"
     },
     {
-      "Sid": "GuardrailLambda",
-      "Effect": "Allow",
-      "Action": "lambda:*",
-      "Resource": "arn:aws:lambda:*:<ACCOUNT_ID>:function:*-uptime-sweep"
-    },
-    {
       "Sid": "Logs",
       "Effect": "Allow",
       "Action": [
@@ -237,7 +225,6 @@ permission set) or an IAM user.
 | Shell env (optional) | `TF_VAR_splunk_admin_password` | Splunk admin password (>= 8 chars). Omit to auto-generate. |
 | Shell env | `TF_VAR_admin_ip_cidrs` | Your operator egress IPs, e.g. `'["203.0.113.7/32"]'` |
 | GitHub repo → Actions variables | `SUMMON_ROLE_ARN` | `tofu output -raw summon_role_arn` |
-| GitHub repo → Actions variables | `SUMMON_SCHEDULER_ROLE_ARN` | `tofu output -raw summon_scheduler_role_arn` |
 | GitHub repo → Actions variables | `AWS_REGION` (optional) | Defaults to `us-east-2` |
 
 ## Usage
@@ -268,13 +255,13 @@ tofu apply -var-file=envs/dev.tfvars -var enable_splunk=false -var enable_cribl=
 ### Summon: start/stop with zero AWS credentials
 
 Set `enable_github_summon = true` and `github_repository = "<owner>/<repo>"`
-in your tfvars, apply, and wire the two role-ARN outputs into the repository's
-Actions variables (table above). Then anyone with write access to the repo
-can run **Actions → Summon environment → Run workflow**:
+in your tfvars, apply, and wire the `summon_role_arn` output into the
+repository's `SUMMON_ROLE_ARN` Actions variable (table above). Then anyone with
+write access to the repo can run **Actions → Summon environment → Run workflow**:
 
 - `action: start` — starts the NAT instance first, then the workload
-  instances, creates a self-deleting stop lease (default 24 h), and prints
-  instance IPs to the job summary.
+  instances, and prints instance IPs to the job summary. The scheduled stop
+  (below) turns everything off again on its schedule.
 - `action: stop` — stops every instance in the stack immediately.
 
 Because it's a plain `workflow_dispatch`, it also works from anywhere that
@@ -296,7 +283,7 @@ modules/
 ├── splunk/       Splunk Enterprise instance + EBS data volume (optional)
 ├── cribl/        Cribl Stream (Linux) + Cribl Edge (Windows) (optional)
 ├── cribl-config/ Declarative Cribl objects via the criblio provider (optional)
-├── lifecycle/    Auto-stop guardrails (uptime sweep + optional schedule)
+├── lifecycle/    Scheduled stop via the AWS-StopEC2Instance runbook
 └── summon/       GitHub Actions OIDC role for credential-less start/stop
 ```
 
@@ -307,12 +294,9 @@ No AWS credentials needed — the suite uses mock providers:
 ```bash
 tofu init -backend=false
 tofu test -no-color
-bash scripts/tofu-test-isolation-check.sh   # per-file isolation + mock-drift gate
 ```
 
-See [docs/terraform-testing-standards.md](docs/terraform-testing-standards.md)
-for the testing conventions and
-[docs/instance-management.md](docs/instance-management.md) for day-2
+See [docs/instance-management.md](docs/instance-management.md) for day-2
 start/stop operations.
 
 ## Security notes

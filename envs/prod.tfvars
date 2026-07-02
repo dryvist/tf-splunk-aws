@@ -7,5 +7,4 @@ environment = "prod"
 enable_splunk = true
 enable_cribl  = false
 
-enable_auto_stop  = true
-max_runtime_hours = 24
+enable_auto_stop = true
