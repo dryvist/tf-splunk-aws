@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/dryvist/tf-splunk-aws/compare/v1.0.2...v1.1.0) (2026-07-03)
+
+
+### Features
+
+* add review-thread-resolver caller for instant bot-thread resolution ([#231](https://github.com/dryvist/tf-splunk-aws/issues/231)) ([506fac3](https://github.com/dryvist/tf-splunk-aws/commit/506fac371b1d2d79c225c1af9c112eceec5d310a))
+
 ## [1.0.2](https://github.com/dryvist/tf-splunk-aws/compare/v1.0.1...v1.0.2) (2026-07-02)
 
 
