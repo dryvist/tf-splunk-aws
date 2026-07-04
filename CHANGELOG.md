@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/dryvist/tf-splunk-aws/compare/v1.1.0...v1.2.0) (2026-07-04)
+
+
+### Features
+
+* add issue-auto-resolve + backlog-sweep AI automation ([#233](https://github.com/dryvist/tf-splunk-aws/issues/233)) ([17e6b55](https://github.com/dryvist/tf-splunk-aws/commit/17e6b55145646e77579fffd66378f0feb6747d31))
+
 ## [1.1.0](https://github.com/dryvist/tf-splunk-aws/compare/v1.0.2...v1.1.0) (2026-07-03)
 
 
