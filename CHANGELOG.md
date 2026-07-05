@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/dryvist/tf-splunk-aws/compare/v1.2.0...v2.0.0) (2026-07-05)
+
+
+### ⚠ BREAKING CHANGES
+
+* Terragrunt is removed; use OpenTofu directly with -backend-config=envs/<env>.s3.tfbackend and -var-file=envs/<env>.tfvars.
+
+### Refactoring
+
+* replace Terragrunt with OpenTofu, optional Splunk/Cribl, scheduled auto-stop ([#227](https://github.com/dryvist/tf-splunk-aws/issues/227)) ([ba86641](https://github.com/dryvist/tf-splunk-aws/commit/ba86641153fc96268688300c703e3411a5b1eb6e))
+
 ## [1.2.0](https://github.com/dryvist/tf-splunk-aws/compare/v1.1.0...v1.2.0) (2026-07-04)
 
 
