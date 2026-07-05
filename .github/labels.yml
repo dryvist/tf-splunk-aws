@@ -1,8 +1,8 @@
 # =============================================================================
-# JacobPEvans Standard Labels
+# Standard Labels
 # =============================================================================
-# Canonical label set for all repositories.
-# Synced via EndBug/label-sync GitHub Action.
+# Canonical label set for this repository.
+# Can be synced via the EndBug/label-sync GitHub Action.
 #
 # Categories:
 #   type:*     - What kind of change (aligns with semantic versioning)

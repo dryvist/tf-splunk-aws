@@ -3,19 +3,17 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
-        exclude: '^\.github/(aw/|workflows/.*\.lock\.yml$)'
       - id: end-of-file-fixer
-        exclude: '^\.github/(aw/|workflows/.*\.lock\.yml$)'
       - id: check-yaml
       - id: check-added-large-files
 
-  # Terraform hooks - require terraform/tflint installed locally
-  # These run in CI via GitHub Actions instead
+  # OpenTofu hooks — require tofu/tflint installed locally.
+  # These also run in CI via GitHub Actions.
   - repo: https://github.com/antonbabenko/pre-commit-terraform
     rev: v1.92.0
     hooks:
       - id: terraform_fmt
-        stages: [manual]  # Run manually or in CI, not on every commit
+        stages: [manual] # Run manually or in CI, not on every commit
       - id: terraform_validate
         stages: [manual]
       - id: terraform_docs
@@ -40,28 +38,12 @@ repos:
           - --args=--only=terraform_required_providers
           - --args=--only=terraform_standard_module_structure
 
-  # Local hooks using tofu directly (no nix/aws-vault needed for mock tests)
+  # Local hook running the mock-provider test suite (no AWS credentials needed)
   - repo: local
     hooks:
       - id: tofu-test
         name: tofu test (mock providers)
-        entry: "bash -c 'if command -v tofu >/dev/null 2>&1; then cd modules && tofu init -backend=false -no-color >/dev/null && tofu test -no-color; elif command -v nix >/dev/null 2>&1; then nix shell nixpkgs#opentofu --command bash -c \"cd modules && tofu init -backend=false -no-color >/dev/null && tofu test -no-color\"; else echo \"Error: tofu not found. Install OpenTofu or Nix.\" >&2; exit 1; fi'"
+        entry: "bash -c 'tofu init -backend=false -no-color >/dev/null && tofu test -no-color'"
         language: system
-        files: '\.(tf|hcl)$'
+        files: '\.(tf|tftest\.hcl)$'
         pass_filenames: false
-
-      - id: terragrunt-validate
-        name: terragrunt validate
-        entry: bash -c 'aws-vault exec tf-splunk-aws -- terragrunt validate'
-        language: system
-        files: '\.(tf|hcl)$'
-        pass_filenames: false
-        stages: [manual]
-
-      - id: terragrunt-plan
-        name: terragrunt plan
-        entry: bash -c 'aws-vault exec tf-splunk-aws -- terragrunt plan -detailed-exitcode; rc=$?; if [ $rc -eq 0 ] || [ $rc -eq 2 ]; then exit 0; else exit 1; fi'
-        language: system
-        files: '\.(tf|hcl)$'
-        pass_filenames: false
-        stages: [manual]

@@ -81,7 +81,7 @@ override_module {
 override_module {
   target = module.lifecycle
   outputs = {
-    auto_stop_schedule_name = "dev-splunk-auto-stop"
+    auto_stop_schedule_name = "dev-splunk-aws-auto-stop"
   }
 }
 
@@ -96,14 +96,14 @@ variables {
   splunk_instance_type = "t3a.small"
 }
 
-# --- enable_auto_stop defaults to false ---
+# --- enable_auto_stop defaults to true ---
 
-run "auto_stop_disabled_by_default" {
+run "auto_stop_enabled_by_default" {
   command = plan
 
   assert {
-    condition     = var.enable_auto_stop == false
-    error_message = "enable_auto_stop must default to false"
+    condition     = var.enable_auto_stop == true
+    error_message = "enable_auto_stop must default to true — it is the primary cost control"
   }
 }
 
@@ -118,7 +118,7 @@ run "stop_schedule_expression_default" {
   }
 }
 
-# --- Plan succeeds with auto-stop disabled (default) ---
+# --- Plan succeeds with the scheduled stop disabled ---
 
 run "auto_stop_disabled_plan_succeeds" {
   command = plan
@@ -128,7 +128,7 @@ run "auto_stop_disabled_plan_succeeds" {
   }
 }
 
-# --- Plan succeeds with auto-stop enabled ---
+# --- Plan succeeds with the scheduled stop enabled (default) ---
 
 run "auto_stop_enabled_plan_succeeds" {
   command = plan
@@ -140,11 +140,10 @@ run "auto_stop_enabled_plan_succeeds" {
 
 # --- Plan succeeds with a custom schedule expression ---
 
-run "custom_stop_schedule_expression_plan_succeeds" {
+run "custom_schedule_expression_plan_succeeds" {
   command = plan
 
   variables {
-    enable_auto_stop         = true
-    stop_schedule_expression = "rate(48 hours)"
+    stop_schedule_expression = "rate(12 hours)"
   }
 }

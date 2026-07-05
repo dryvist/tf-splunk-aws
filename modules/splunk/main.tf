@@ -1,8 +1,8 @@
-# Splunk Module - Splunk-specific instances and configuration
-# Handles Splunk infrastructure deployment and configuration
+# Splunk module — the Splunk Enterprise instance, its EBS data volume, and
+# CloudWatch log groups. All resources are gated on var.enable_splunk.
 
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.6"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -15,28 +15,34 @@ terraform {
   }
 }
 
-# Current AWS region (used in user_data for SSM parameter retrieval)
+# Current AWS region (used in user_data for SSM parameter retrieval).
 data "aws_region" "current" {}
 
-# Local values for consistent tagging
 locals {
+  enabled = var.enable_splunk ? 1 : 0
+
   common_tags = {
     Environment = var.environment
-    Project     = "splunk-aws"
-    ManagedBy   = "terraform"
+    Project     = var.project_tag
+    ManagedBy   = "opentofu"
   }
 
-  # Download URL — validated at plan/apply time via data "http"
-  splunk_pkg_url = "https://download.splunk.com/products/splunk/releases/${var.splunk_version}/linux/splunk-${var.splunk_version}-${var.splunk_build}-linux-amd64.tgz"
+  # Guard against null when enable_splunk = false — locals are evaluated even
+  # when every resource in the module has count = 0.
+  splunk_password_ssm_name = coalesce(var.splunk_password_ssm_name, "unused")
+
+  splunk_pkg_url = "${var.splunk_download_base_url}/products/splunk/releases/${var.splunk_version}/linux/splunk-${var.splunk_version}-${var.splunk_build}-linux-amd64.tgz"
 }
 
-# Pre-deployment validation: verify Splunk download URL exists
+# Fail at plan time (not mid-boot) if the requested version/build does not
+# exist at the download URL.
 data "http" "splunk_pkg" {
+  count = local.enabled
+
   url    = local.splunk_pkg_url
   method = "HEAD"
 }
 
-# User data script for Splunk instance
 locals {
   splunk_user_data = base64encode(<<-EOF
     #!/bin/bash
@@ -82,7 +88,7 @@ locals {
     # Create splunk user
     useradd -r -m -s /bin/bash splunk
 
-    # Download and install Splunk (URL pre-validated by check block)
+    # Download and install Splunk (URL pre-validated at plan time)
     cd /opt
     SPLUNK_PKG="splunk-${var.splunk_version}-${var.splunk_build}-linux-amd64.tgz"
     wget -O "$${SPLUNK_PKG}" "${local.splunk_pkg_url}"
@@ -93,11 +99,11 @@ locals {
 
     # Retrieve Splunk admin password from SSM Parameter Store (never stored in user_data)
     SPLUNK_PASSWORD=$(aws ssm get-parameter \
-      --name "${var.splunk_password_ssm_name}" \
+      --name "${local.splunk_password_ssm_name}" \
       --with-decryption \
       --query 'Parameter.Value' \
       --output text \
-      --region ${data.aws_region.current.id})
+      --region ${data.aws_region.current.region})
 
     if [ -z "$SPLUNK_PASSWORD" ]; then
       echo "ERROR: Failed to retrieve Splunk password from SSM or password is empty. Aborting." >&2
@@ -111,16 +117,17 @@ locals {
     # Enable Splunk to start at boot
     /opt/splunk/bin/splunk enable boot-start -user splunk
 
-    # Splunk Web defaults to port 8000 and the daemon is already running from the
-    # `splunk start --seed-passwd` call above. `set web-port` and `restart` are
-    # avoided here because they require an authenticated CLI session, which the
-    # seed-passwd flow does not establish.
+    # Splunk Web listens on its default port (8000) and the daemon is already
+    # running from the `splunk start --seed-passwd` call above. `set web-port`
+    # and `restart` are avoided here because they require an authenticated CLI
+    # session, which the seed-passwd flow does not establish.
   EOF
   )
 }
 
-# Splunk Instance
 resource "aws_instance" "splunk" {
+  count = local.enabled
+
   ami                         = var.ami_id
   instance_type               = var.splunk_instance_type
   key_name                    = var.key_pair_name
@@ -141,7 +148,8 @@ resource "aws_instance" "splunk" {
     })
   }
 
-  # Additional EBS volume for Splunk data
+  # Dedicated data volume — Splunk indexes live here (mounted at /opt/splunk
+  # by user_data), so index data survives independent of the root volume.
   ebs_block_device {
     device_name = "/dev/sdf"
     volume_type = "gp3"
@@ -161,14 +169,15 @@ resource "aws_instance" "splunk" {
   lifecycle {
     create_before_destroy = true
     precondition {
-      condition     = data.http.splunk_pkg.status_code == 200
-      error_message = "Splunk package not found at ${local.splunk_pkg_url} (HTTP ${data.http.splunk_pkg.status_code}). Check splunk_version and splunk_build."
+      condition     = data.http.splunk_pkg[0].status_code == 200
+      error_message = "Splunk package not found at ${local.splunk_pkg_url} (HTTP ${try(data.http.splunk_pkg[0].status_code, 0)}). Check splunk_version and splunk_build."
     }
   }
 }
 
-# CloudWatch Log Group for Splunk instance
 resource "aws_cloudwatch_log_group" "splunk" {
+  count = local.enabled
+
   name              = "/aws/ec2/${var.environment}-splunk"
   retention_in_days = 30
 
@@ -177,8 +186,9 @@ resource "aws_cloudwatch_log_group" "splunk" {
   })
 }
 
-# CloudWatch Log Group for Splunk application logs
 resource "aws_cloudwatch_log_group" "splunk_app" {
+  count = local.enabled
+
   name              = "/splunk/${var.environment}"
   retention_in_days = 90
 

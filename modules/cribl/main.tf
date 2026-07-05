@@ -1,8 +1,9 @@
-# Cribl Module - Cribl Stream (Linux) and Cribl Edge (Windows)
-# Leader/worker pair: Edge connects to Stream's private IP on port 4200
+# Cribl module — Cribl Stream (Linux leader) and Cribl Edge (Windows worker).
+# Edge connects to Stream's private IP on the Cribl web/leader port. All
+# resources are gated on var.enable_cribl.
 
 terraform {
-  required_version = ">= 1.0"
+  required_version = ">= 1.6"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -18,13 +19,17 @@ terraform {
 locals {
   common_tags = {
     Environment = var.environment
-    Project     = "splunk-aws"
-    ManagedBy   = "terraform"
+    Project     = var.project_tag
+    ManagedBy   = "opentofu"
   }
 
+  # Guard against null when enable_cribl = false — locals are evaluated even
+  # when every resource in the module has count = 0.
+  windows_admin_password = coalesce(var.windows_admin_password, "unused")
+
   # Download URLs — validated at plan/apply time via data "http" resources
-  cribl_stream_rpm_url = "https://cdn.cribl.io/dl/${var.cribl_version}/cribl-${var.cribl_version}-${var.cribl_build}-linux-x64.rpm"
-  cribl_edge_zip_url   = "https://cdn.cribl.io/dl/${var.cribl_version}/cribl-${var.cribl_version}-${var.cribl_build}-windows-x64.zip"
+  cribl_stream_rpm_url = "${var.cribl_download_base_url}/dl/${var.cribl_version}/cribl-${var.cribl_version}-${var.cribl_build}-linux-x64.rpm"
+  cribl_edge_zip_url   = "${var.cribl_download_base_url}/dl/${var.cribl_version}/cribl-${var.cribl_version}-${var.cribl_build}-windows-x64.zip"
 }
 
 # Pre-deployment validation: verify download URLs exist before creating instances
@@ -72,7 +77,7 @@ distributed:
   group: default
 api:
   host: 0.0.0.0
-  port: 4200
+  port: ${var.cribl_web_port}
 CRIBL_CFG
     chown -R cribl:cribl /opt/cribl/local
 
@@ -89,7 +94,7 @@ locals {
 <powershell>
 # Set Administrator password (auto-generated per-build)
 $ErrorActionPreference = "Stop"
-$adminPassword = ConvertTo-SecureString "${var.windows_admin_password}" -AsPlainText -Force
+$adminPassword = ConvertTo-SecureString "${local.windows_admin_password}" -AsPlainText -Force
 Get-LocalUser -Name "Administrator" | Set-LocalUser -Password $adminPassword
 
 # Install Cribl Edge and connect to Stream leader
@@ -119,7 +124,7 @@ distributed:
   mode: managed-edge
   master:
     host: $streamIp
-    port: 4200
+    port: ${var.cribl_web_port}
 "@
 
 # Install and start as Windows service
