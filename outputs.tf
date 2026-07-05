@@ -122,6 +122,13 @@ output "cribl_edge_public_ip" {
   value       = module.cribl.cribl_edge_public_ip
 }
 
+# --- Summon ---------------------------------------------------------------------
+
+output "summon_role_arn" {
+  description = "ARN of the GitHub Actions summon role (null when disabled). Set this as the SUMMON_ROLE_ARN repository variable."
+  value       = module.summon.summon_role_arn
+}
+
 # --- Cost estimate --------------------------------------------------------------
 # On-demand us-east-2 pricing, computed from the enabled components. EBS is
 # billed while instances are stopped; compute is not, which is why the

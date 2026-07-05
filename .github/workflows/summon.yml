@@ -1,0 +1,104 @@
+# Summon — start or stop the environment from the Actions tab (or the Slack
+# GitHub app) with zero AWS credentials. Authenticates via GitHub OIDC to the
+# role created by modules/summon (enable_github_summon = true).
+#
+# Required repository Actions variables (from `tofu output` after apply):
+#   SUMMON_ROLE_ARN  — module output summon_role_arn
+# Optional repository Actions variables:
+#   AWS_REGION   (default us-east-2)
+#   PROJECT_TAG  (default splunk-aws)
+#
+# The scheduled stop (modules/lifecycle) stops the stack on its schedule
+# regardless of how it was started.
+
+name: Summon environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Start or stop the environment
+        type: choice
+        required: true
+        default: start
+        options:
+          - start
+          - stop
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: summon
+  cancel-in-progress: false
+
+jobs:
+  summon:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-2' }}
+      PROJECT_TAG: ${{ vars.PROJECT_TAG || 'splunk-aws' }}
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
+        with:
+          role-to-assume: ${{ vars.SUMMON_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Start environment
+        if: inputs.action == 'start'
+        run: |
+          set -euo pipefail
+
+          # NAT first: private-subnet instances need their egress path up
+          # before they boot and reach for packages/AWS APIs.
+          nat_ids=$(aws ec2 describe-instances \
+            --filters "Name=tag:Project,Values=${PROJECT_TAG}" "Name=tag:Role,Values=nat" "Name=instance-state-name,Values=stopped" \
+            --query 'Reservations[].Instances[].InstanceId' --output text)
+          if [ -n "$nat_ids" ]; then
+            aws ec2 start-instances --instance-ids $nat_ids
+            aws ec2 wait instance-running --instance-ids $nat_ids
+          fi
+
+          other_ids=$(aws ec2 describe-instances \
+            --filters "Name=tag:Project,Values=${PROJECT_TAG}" "Name=instance-state-name,Values=stopped" \
+            --query 'Reservations[].Instances[?!(Tags[?Key==`Role` && Value==`nat`])][].InstanceId' --output text)
+          if [ -n "$other_ids" ]; then
+            aws ec2 start-instances --instance-ids $other_ids
+            aws ec2 wait instance-running --instance-ids $other_ids
+          fi
+
+          if [ -z "$nat_ids" ] && [ -z "$other_ids" ]; then
+            echo "No stopped Project=${PROJECT_TAG} instances found." | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Stop environment
+        if: inputs.action == 'stop'
+        run: |
+          set -euo pipefail
+          ids=$(aws ec2 describe-instances \
+            --filters "Name=tag:Project,Values=${PROJECT_TAG}" "Name=instance-state-name,Values=running" \
+            --query 'Reservations[].Instances[].InstanceId' --output text)
+          if [ -n "$ids" ]; then
+            aws ec2 stop-instances --instance-ids $ids
+            echo "Stopping: $ids" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "No running Project=${PROJECT_TAG} instances found." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Report instance status
+        if: always()
+        run: |
+          set -euo pipefail
+          {
+            echo ""
+            echo "## Environment status (${{ inputs.action }})"
+            echo ""
+            echo "| Instance | State | Public IP | Private IP |"
+            echo "| --- | --- | --- | --- |"
+            aws ec2 describe-instances \
+              --filters "Name=tag:Project,Values=${PROJECT_TAG}" \
+              --query 'Reservations[].Instances[].[Tags[?Key==`Name`]|[0].Value, State.Name, PublicIpAddress, PrivateIpAddress]' \
+              --output text | awk '{printf "| %s | %s | %s | %s |\n", $1, $2, $3, $4}'
+          } >> "$GITHUB_STEP_SUMMARY"

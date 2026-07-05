@@ -24,7 +24,7 @@ variable "aws_region" {
 }
 
 variable "project_tag" {
-  description = "Value of the Project tag applied to every resource. The auto-stop guardrail targets instances by this tag, so all instances in scope must share it."
+  description = "Value of the Project tag applied to every resource. The auto-stop guardrail and the summon role target instances by this tag, so all instances in scope must share it."
   type        = string
   default     = "splunk-aws"
 }
@@ -58,6 +58,29 @@ variable "stop_schedule_expression" {
     condition     = can(regex("^(cron|rate)\\(", var.stop_schedule_expression))
     error_message = "stop_schedule_expression must be a cron(...) or rate(...) expression."
   }
+}
+
+variable "enable_github_summon" {
+  description = "Create the GitHub Actions OIDC role that lets the summon workflow start/stop this environment without AWS credentials. Requires github_repository."
+  type        = bool
+  default     = false
+}
+
+variable "github_repository" {
+  description = "GitHub repository (owner/name) trusted to assume the summon role. Required when enable_github_summon = true."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.github_repository == "" || can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_repository))
+    error_message = "github_repository must be in owner/name form, e.g. my-org/tf-splunk-aws."
+  }
+}
+
+variable "github_oidc_provider_arn" {
+  description = "ARN of an existing GitHub Actions OIDC identity provider to reuse. Leave null to create one (an AWS account can only hold one provider per issuer URL)."
+  type        = string
+  default     = null
 }
 
 # --- Network ------------------------------------------------------------------

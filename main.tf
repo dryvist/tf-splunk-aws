@@ -7,6 +7,7 @@
 #   splunk    Splunk Enterprise instance + EBS data volume (optional)
 #   cribl     Cribl Stream (Linux) + Cribl Edge (Windows) instances (optional)
 #   lifecycle Scheduled stop of Project-tagged instances (AWS-StopEC2Instance)
+#   summon    GitHub Actions OIDC role for credential-less start/stop
 #
 # Splunk and Cribl are independently optional (enable_splunk / enable_cribl);
 # the network, NAT, and guardrail layers are shared infrastructure.
@@ -246,6 +247,18 @@ module "lifecycle" {
   project_tag              = var.project_tag
   enable_auto_stop         = var.enable_auto_stop
   stop_schedule_expression = var.stop_schedule_expression
+}
+
+# GitHub Actions OIDC role so authorized repository users can start/stop the
+# environment ("summon") with zero AWS credentials of their own.
+module "summon" {
+  source = "./modules/summon"
+
+  enable_github_summon     = var.enable_github_summon
+  environment              = var.environment
+  project_tag              = var.project_tag
+  github_repository        = var.github_repository
+  github_oidc_provider_arn = var.github_oidc_provider_arn
 }
 
 # Plan-time guard: when the criblio config layer is enabled, both the
