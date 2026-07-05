@@ -68,6 +68,9 @@ One-time, per AWS account. Run with an admin-capable identity.
 ### 1. Create the state bucket
 
 State locking uses S3 native lockfiles (OpenTofu >= 1.10) — no DynamoDB table.
+This is a greenfield backend (bucket/key/locking all changed from the old
+Terragrunt setup: `useast2`→`us-east-2`, dropped the `terragrunt/` key prefix,
+DynamoDB→S3 lockfile) — nothing carries over from a prior Terragrunt state.
 
 ```bash
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
