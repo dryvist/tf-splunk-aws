@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/dryvist/tf-splunk-aws/compare/v2.0.0...v2.0.1) (2026-07-09)
+
+
+### Bug Fixes
+
+* **renovate:** inherit dryvist org default preset ([#238](https://github.com/dryvist/tf-splunk-aws/issues/238)) ([ed4dd5f](https://github.com/dryvist/tf-splunk-aws/commit/ed4dd5f46705d3aac682436861ca98659e88f0be))
+
 ## [2.0.0](https://github.com/dryvist/tf-splunk-aws/compare/v1.2.0...v2.0.0) (2026-07-05)
 
 
