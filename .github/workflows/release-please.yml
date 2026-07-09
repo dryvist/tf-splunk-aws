@@ -8,12 +8,9 @@ permissions: {}
 
 jobs:
   release-please:
-    runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
-    steps:
-      - uses: googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071 # v4.4.1
-        with:
-          config-file: release-please-config.json
-          manifest-file: .release-please-manifest.json
+    uses: dryvist/.github/.github/workflows/_release-please.yml@main
+    secrets:
+      GH_ACTION_RELEASE_PLEASE_PRIVATE_KEY: ${{ secrets.GH_ACTION_RELEASE_PLEASE_PRIVATE_KEY }}
