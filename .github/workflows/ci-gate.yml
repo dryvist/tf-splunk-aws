@@ -1,0 +1,41 @@
+# CI Gate — thin wrapper over the dryvist org reusable workflow
+#
+# Delegates markdown lint (and the other standard checks) to the org
+# orchestrator `dryvist/.github/.github/workflows/_ci-gate.yml@main`. Replaces
+# the old standalone `markdown-lint.yml`, which the org gate now covers.
+# OpenTofu-specific checks stay in the bespoke `tofu-ci.yml` (not covered by
+# the org gate).
+
+name: CI Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  # Job id `gate` is the org-canonical caller shape: the required status
+  # check context is `gate / Merge Gate` on every consumer.
+  gate:
+    permissions:
+      contents: read
+      pull-requests: read
+      # The org gate's queue watchdog cancels stuck sibling jobs via the
+      # Actions API; a called workflow can never exceed the caller's grant, so
+      # `actions: write` must be granted here or the run fails at graph
+      # validation (startup_failure).
+      actions: write
+    uses: dryvist/.github/.github/workflows/_ci-gate.yml@main
+    with:
+      markdown_lint: true
+      filters: |
+        markdown:
+          - '**.md'
+          - '.markdownlint*'
