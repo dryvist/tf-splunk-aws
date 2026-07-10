@@ -3,7 +3,11 @@
 # The criblio provider exposes commit and deploy as native resources. The
 # `terraform_data` trigger forces criblio_commit to be replaced whenever any
 # upstream module's content_hash changes, which produces a fresh commit and
-# in turn a fresh deploy (the deploy depends on the commit's version output).
+# in turn a fresh deploy. Provider 1.25.1 no longer exports the created
+# commit's hash on criblio_commit, so the deploy reads the group's version
+# list through the criblio_config_version data source instead; depends_on
+# defers that read until after the commit lands, and items[0] is the newest
+# commit (the API returns git-log order).
 #
 # No local-exec, no shell, no inline script — pure HCL.
 
@@ -12,7 +16,7 @@ terraform {
   required_providers {
     criblio = {
       source  = "criblio/criblio"
-      version = "1.23.36"
+      version = "1.25.1"
     }
   }
 }
@@ -30,7 +34,12 @@ resource "criblio_commit" "this" {
   }
 }
 
+data "criblio_config_version" "post_commit" {
+  id         = var.worker_group_id
+  depends_on = [criblio_commit.this]
+}
+
 resource "criblio_deploy" "this" {
   id      = var.worker_group_id
-  version = criblio_commit.this.items[0].commit
+  version = data.criblio_config_version.post_commit.items[0]
 }
